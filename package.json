@@ -4,9 +4,6 @@
   "private": true,
   "description": "Public source repo for the unofficial codex-chatgpt-control SDK.",
   "type": "module",
-  "workspaces": [
-    "packages/node"
-  ],
   "scripts": {
     "node:test": "npm --prefix packages/node test",
     "node:build": "npm --prefix packages/node run build",

@@ -20,9 +20,145 @@ This project is not affiliated with, endorsed by, or sponsored by OpenAI.
 
 This repository is public-source alpha preparation. npm and PyPI packages are not published yet. The Node package is the runtime authority; the Python package is a parity client over the same backend protocol.
 
+## What This Is For
+
+Use `codex-chatgpt-control` when a Codex-style agent needs to work with the real ChatGPT web product that the user can see:
+
+- start or continue visible ChatGPT threads
+- submit prompts and read Markdown responses
+- attach approved local files through visible upload controls
+- download visible generated files
+- return structured blockers for login, captcha, permissions, selector drift, or missing browser bridge
+- create redacted run reports
+
+This project deliberately does not provide hidden ChatGPT access, account automation, or a replacement for the OpenAI API.
+
+## Quick Start From Source
+
+Clone the repo and build the Node runtime:
+
+```bash
+git clone https://github.com/adamallcock/codex-chatgpt-control.git
+cd codex-chatgpt-control/packages/node
+npm ci
+npm test
+npm run build
+npm run bundle
+npm run bundle:backend
+```
+
+Use the SDK from a Codex/browser-bridge host that provides `globalThis.agent`:
+
+```ts
+import { createChatGPT } from "./dist/codex-chatgpt-control.bundle.mjs";
+
+const chatgpt = createChatGPT({ agent: globalThis.agent });
+const reviewer = chatgpt.agent({
+  name: "reviewer",
+  instructions: "Review carefully and return Markdown."
+});
+
+const result = await chatgpt.runner.run(reviewer, {
+  input: "Reply with a one-sentence summary of this project.",
+  thread: { type: "new" },
+  response: { format: "markdown" }
+});
+
+console.log(result.output_text);
+```
+
+If you run browser-required commands from an ordinary shell, the safe expected result is a structured `browser_bridge_unavailable` blocker. That means the protocol path is working, but no visible browser bridge was available to the process.
+
+## Bundled Codex Skill
+
+This repo includes a public Codex skill at [skills/codex-chatgpt-control/SKILL.md](skills/codex-chatgpt-control/SKILL.md).
+
+Install it into a local Codex skills directory:
+
+```bash
+mkdir -p ~/.codex/skills/codex-chatgpt-control
+rsync -a skills/codex-chatgpt-control/ ~/.codex/skills/codex-chatgpt-control/
+```
+
+The skill is an agent-facing operating guide. It does not bundle a private browser bridge or credentials. Build the Node runtime from `packages/node` first, then point the skill/user workflow at that local source checkout until registry packages are published.
+
+## Runtime Requirements
+
+For deterministic tests and ordinary-shell protocol checks:
+
+- Node.js 20 or newer for `packages/node`
+- Python 3.10 or newer for `packages/python`
+- npm for Node dependency installation
+- Python virtualenv tooling for Python development
+
+For real ChatGPT browser control:
+
+- a signed-in ChatGPT web session in Chrome
+- a compatible Codex/browser bridge that exposes `globalThis.agent`
+- a visible browser tab or permission to open one
+- user approval for prompts, files, downloads, and any account-affecting action
+
+`globalThis.agent` is not created by this package. It must come from the host runtime, such as a Codex environment with a compatible browser bridge. The SDK refuses to fake this path: ordinary shell runs should return `browser_bridge_unavailable` for browser-required operations.
+
+### Local File Upload Requirements
+
+File attachments need two separate permission gates:
+
+1. **Chrome extension gate:** open `chrome://extensions`, choose the Codex/browser bridge extension, open **Details**, and enable **Allow access to file URLs**.
+2. **Codex app gate:** in Codex settings, allow Google Chrome uploads under **Computer Use > Google Chrome > Permissions > Uploads**. Choose the most restrictive setting that still fits your workflow; for unattended local smoke tests, use the setting that always allows uploads.
+
+If either gate is missing, file upload workflows should stop with a structured permission blocker instead of retrying blindly.
+
+## Python Quick Start
+
+Build the Node backend first:
+
+```bash
+cd packages/node
+npm ci
+npm run bundle:backend
+```
+
+Install the Python package from source:
+
+```bash
+cd ../python
+python -m pip install -e .[dev]
+python scripts/live_smoke.py --mode ordinary-shell
+```
+
+Use Python against an explicit backend command:
+
+```python
+from codex_chatgpt_control import Agent, BackendClient, Runner, StdioBackendTransport
+
+backend = BackendClient(StdioBackendTransport(
+    command=["node", "../node/dist/codex-chatgpt-control-backend.mjs"]
+))
+runner = Runner(backend)
+
+try:
+    result = runner.run_sync(
+        Agent(name="reviewer", instructions="Review carefully."),
+        {
+            "input": "Reply with hi.",
+            "thread": {"type": "new"},
+            "response": {"format": "markdown"},
+        },
+    )
+finally:
+    backend.close()
+
+print(result.status)
+print(result.output_text)
+```
+
+The Python package is a protocol client. The current browser runtime is still Node-backed.
+
 ## Repository Layout
 
 ```text
+skills/             Public Codex skill for agent-facing usage
 packages/node/      TypeScript runtime, contracts, backend server, tests
 packages/python/    Python parity client, examples, tests
 docs/               Public architecture, safety, bridge, and release notes

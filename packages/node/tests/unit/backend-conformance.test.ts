@@ -43,7 +43,7 @@ describe("backend conformance", () => {
     const { inProcess, backend } = createClientPair();
     const sensitiveValue = {
       prompt: "private@example.com",
-      file: "/example/private/report.txt",
+      file: "/example/user/private/report.txt",
       token: "token_12345678901234567890123456789012"
     };
     const blockedResult = {

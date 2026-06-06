@@ -1,0 +1,38 @@
+{
+  "name": "agent-run:metadata-agent",
+  "policy": {
+    "returnPartial": true,
+    "stopOnError": true
+  },
+  "steps": [
+    {
+      "command": "session.bootstrap",
+      "id": "bootstrap"
+    },
+    {
+      "args": {
+        "conversationId": "conv_metadata_123"
+      },
+      "command": "threads.open",
+      "id": "open"
+    },
+    {
+      "args": {
+        "effort": "Thinking"
+      },
+      "command": "modes.set",
+      "id": "mode"
+    },
+    {
+      "args": {
+        "read": {
+          "format": "markdown"
+        },
+        "text": "Summarize visible-only behavior.",
+        "wait": true
+      },
+      "command": "messages.ask",
+      "id": "ask"
+    }
+  ]
+}

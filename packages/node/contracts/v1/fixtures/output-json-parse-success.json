@@ -1,0 +1,132 @@
+{
+  "result": {
+    "activeAgentName": "json-agent",
+    "context": {
+      "assistantTurnCount": 1,
+      "timestamp": "2026-06-06T00:00:00.000Z",
+      "title": "ChatGPT",
+      "turnCount": 2,
+      "url": "https://chatgpt.com/"
+    },
+    "data": {
+      "finalOutput": {
+        "score": 1,
+        "verdict": "ok"
+      },
+      "outputText": "{\"verdict\":\"ok\",\"score\":1}",
+      "thread": {
+        "title": "ChatGPT",
+        "url": "https://chatgpt.com/"
+      }
+    },
+    "finalOutput": {
+      "score": 1,
+      "verdict": "ok"
+    },
+    "interruptions": [],
+    "lastAgentName": "json-agent",
+    "newItems": [
+      {
+        "preview": "Return a JSON verdict.",
+        "redacted": true,
+        "role": "user",
+        "type": "message.submitted"
+      },
+      {
+        "format": "markdown",
+        "output_text": "{\"verdict\":\"ok\",\"score\":1}",
+        "role": "assistant",
+        "type": "message.completed"
+      }
+    ],
+    "ok": true,
+    "output": [
+      {
+        "preview": "Return a JSON verdict.",
+        "redacted": true,
+        "role": "user",
+        "type": "message.submitted"
+      },
+      {
+        "format": "markdown",
+        "output_text": "{\"verdict\":\"ok\",\"score\":1}",
+        "role": "assistant",
+        "type": "message.completed"
+      }
+    ],
+    "output_text": "{\"verdict\":\"ok\",\"score\":1}",
+    "state": {
+      "id": "run_fixed",
+      "resumable": false,
+      "thread": {
+        "title": "ChatGPT",
+        "url": "https://chatgpt.com/"
+      }
+    },
+    "status": "ok",
+    "steps": [
+      {
+        "command": "session.bootstrap",
+        "dataPreview": {
+          "browserName": "chrome",
+          "loggedIn": true,
+          "tabId": "unknown",
+          "url": "https://chatgpt.com/"
+        },
+        "endedAt": "2026-06-06T00:00:00.000Z",
+        "id": "bootstrap",
+        "ok": true,
+        "startedAt": "2026-06-06T00:00:00.000Z",
+        "status": "ok",
+        "warnings": []
+      },
+      {
+        "command": "threads.new",
+        "dataPreview": {
+          "title": "ChatGPT",
+          "url": "https://chatgpt.com/"
+        },
+        "endedAt": "2026-06-06T00:00:00.000Z",
+        "id": "new",
+        "ok": true,
+        "startedAt": "2026-06-06T00:00:00.000Z",
+        "status": "ok",
+        "warnings": []
+      },
+      {
+        "command": "modes.set",
+        "dataPreview": {
+          "candidates": [
+            "Thinking"
+          ],
+          "selected": [
+            "Thinking"
+          ]
+        },
+        "endedAt": "2026-06-06T00:00:00.000Z",
+        "id": "mode",
+        "ok": true,
+        "startedAt": "2026-06-06T00:00:00.000Z",
+        "status": "ok",
+        "warnings": []
+      },
+      {
+        "command": "messages.ask",
+        "dataPreview": {
+          "complete": true,
+          "prompt": "Return a JSON verdict.",
+          "responseText": "{\"verdict\":\"ok\",\"score\":1}",
+          "title": "ChatGPT"
+        },
+        "endedAt": "2026-06-06T00:00:00.000Z",
+        "id": "ask",
+        "ok": true,
+        "startedAt": "2026-06-06T00:00:00.000Z",
+        "status": "ok",
+        "warnings": []
+      }
+    ],
+    "warnings": []
+  },
+  "schemaVersion": "chatgpt.browser_control.run_result.v1"
+}

@@ -1,0 +1,54 @@
+{
+  "commands": [
+    "backend.version",
+    "backend.health",
+    "backend.capabilities",
+    "runner.run",
+    "runner.plan",
+    "runner.stream",
+    "responses.create",
+    "ask",
+    "askInThread",
+    "askWithFiles",
+    "askAndDownload",
+    "runMessages",
+    "openThread",
+    "readLatest",
+    "copyLatest",
+    "downloadLatest",
+    "runPlan",
+    "doctor",
+    "createReport",
+    "reports.create",
+    "reports.redact",
+    "reports.summarize",
+    "commands",
+    "describe",
+    "help",
+    "session.bootstrap",
+    "threads.new",
+    "threads.search",
+    "threads.open",
+    "messages.compose",
+    "messages.submit",
+    "messages.ask",
+    "messages.wait",
+    "messages.readLatest",
+    "messages.waitAndRead",
+    "files.attach",
+    "files.downloadLatest",
+    "modes.set",
+    "tools.select",
+    "response.copy"
+  ],
+  "protocolVersion": "chatgpt.browser_control.backend_request.v1",
+  "streaming": {
+    "modes": [
+      "ndjson"
+    ],
+    "tokenDeltas": false
+  },
+  "transports": [
+    "stdio"
+  ]
+}

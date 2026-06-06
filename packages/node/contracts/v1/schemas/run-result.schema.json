@@ -1,0 +1,138 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://local.codex-chatgpt-control/contracts/v1/run-result.schema.json",
+  "type": "object",
+  "required": [
+    "ok",
+    "status",
+    "output_text",
+    "output",
+    "newItems",
+    "interruptions",
+    "state",
+    "warnings",
+    "context"
+  ],
+  "additionalProperties": true,
+  "properties": {
+    "ok": { "type": "boolean" },
+    "status": { "$ref": "#/$defs/commandStatus" },
+    "output_text": { "type": "string" },
+    "finalOutput": {},
+    "output": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/runItem" }
+    },
+    "newItems": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/runItem" }
+    },
+    "interruptions": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/interruption" }
+    },
+    "state": { "$ref": "#/$defs/runState" },
+    "activeAgentName": { "type": "string" },
+    "lastAgentName": { "type": "string" },
+    "warnings": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "context": {
+      "type": "object",
+      "required": ["timestamp"],
+      "additionalProperties": true,
+      "properties": {
+        "timestamp": { "type": "string", "minLength": 1 }
+      }
+    },
+    "blocker": { "$ref": "#/$defs/blocker" },
+    "reportPath": { "type": "string" }
+  },
+  "$defs": {
+    "commandStatus": {
+      "enum": ["ok", "partial", "timeout", "blocked", "needs_confirmation", "not_found", "unsupported", "error"]
+    },
+    "runState": {
+      "type": "object",
+      "required": ["id", "resumable"],
+      "additionalProperties": true,
+      "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "resumable": { "type": "boolean" },
+        "thread": {
+          "type": "object",
+          "additionalProperties": true
+        },
+        "nextStepId": { "type": "string" }
+      }
+    },
+    "blocker": {
+      "type": "object",
+      "required": ["kind", "message"],
+      "additionalProperties": true,
+      "properties": {
+        "kind": { "type": "string", "minLength": 1 },
+        "message": { "type": "string", "minLength": 1 },
+        "visibleText": { "type": "string" },
+        "code": { "type": "string" },
+        "fieldPath": { "type": "string" },
+        "remediation": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["label", "instruction", "userActionRequired"],
+            "additionalProperties": true,
+            "properties": {
+              "label": { "type": "string", "minLength": 1 },
+              "instruction": { "type": "string", "minLength": 1 },
+              "userActionRequired": { "type": "boolean" }
+            }
+          }
+        },
+        "candidates": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["label"],
+            "additionalProperties": true,
+            "properties": {
+              "label": { "type": "string", "minLength": 1 },
+              "role": { "type": "string" }
+            }
+          }
+        },
+        "resumable": { "type": "boolean" }
+      }
+    },
+    "interruption": {
+      "type": "object",
+      "required": ["id", "type", "status", "message", "resume"],
+      "additionalProperties": true,
+      "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "type": { "type": "string", "minLength": 1 },
+        "status": { "$ref": "#/$defs/commandStatus" },
+        "message": { "type": "string", "minLength": 1 },
+        "resume": {
+          "type": "object",
+          "required": ["supported"],
+          "additionalProperties": true,
+          "properties": {
+            "supported": { "type": "boolean" },
+            "stateId": { "type": "string" },
+            "reason": { "type": "string" }
+          }
+        }
+      }
+    },
+    "runItem": {
+      "type": "object",
+      "required": ["type"],
+      "additionalProperties": true,
+      "properties": {
+        "type": { "type": "string", "minLength": 1 }
+      }
+    }
+  }
+}

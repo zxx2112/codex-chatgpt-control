@@ -1,0 +1,44 @@
+[project]
+name = "codex-chatgpt-control"
+version = "0.1.0a1"
+description = "Python SDK for Codex agents controlling visible ChatGPT web sessions through a local backend."
+readme = "README.md"
+requires-python = ">=3.10"
+license = "MIT"
+authors = [
+  { name = "Adam Allcock" }
+]
+keywords = ["codex", "chatgpt", "browser-automation", "visible-ui", "agents", "sdk"]
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "Intended Audience :: Developers",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Typing :: Typed"
+]
+dependencies = [
+  "pydantic>=2,<3"
+]
+
+[project.urls]
+Homepage = "https://github.com/adamallcock/codex-chatgpt-control"
+Issues = "https://github.com/adamallcock/codex-chatgpt-control/issues"
+Source = "https://github.com/adamallcock/codex-chatgpt-control"
+
+[project.optional-dependencies]
+dev = [
+  "pyright>=1.1.390"
+]
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+codex_chatgpt_control = ["py.typed"]

@@ -1,0 +1,51 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://local.codex-chatgpt-control/contracts/v1/response.schema.json",
+  "type": "object",
+  "required": ["id", "object", "created_at", "status", "output_text", "output", "browser_control"],
+  "additionalProperties": true,
+  "properties": {
+    "id": { "type": "string", "minLength": 1 },
+    "object": { "const": "chatgpt.browser.response" },
+    "created_at": { "type": "integer", "minimum": 0 },
+    "status": { "$ref": "#/$defs/commandStatus" },
+    "output_text": { "type": "string" },
+    "output": {
+      "type": "array",
+      "items": { "type": "object" }
+    },
+    "browser_control": {
+      "type": "object",
+      "required": ["visibleUi", "resultStatus"],
+      "additionalProperties": true,
+      "properties": {
+        "visibleUi": { "type": "boolean" },
+        "resultStatus": { "$ref": "#/$defs/commandStatus" },
+        "thread": {
+          "type": "object",
+          "additionalProperties": true
+        },
+        "reportPath": { "type": "string" },
+        "unsupported": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/unsupportedField" }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "commandStatus": {
+      "enum": ["ok", "partial", "timeout", "blocked", "needs_confirmation", "not_found", "unsupported", "error"]
+    },
+    "unsupportedField": {
+      "type": "object",
+      "required": ["path", "reason"],
+      "additionalProperties": true,
+      "properties": {
+        "path": { "type": "string", "minLength": 1 },
+        "reason": { "type": "string", "minLength": 1 },
+        "alternative": { "type": "string" }
+      }
+    }
+  }
+}

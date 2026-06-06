@@ -1,0 +1,84 @@
+import type { BlockerKind, PageLike } from "../types.js";
+import { classifyVisibleText } from "../safety/blockers.js";
+import { compactVisibleText } from "../safety/redaction.js";
+
+export type PageState = {
+  url: string;
+  conversationId?: string;
+  title?: string;
+  visibleText: string;
+  signedIn: boolean;
+  blocker?: { kind: BlockerKind; message: string; visibleText?: string };
+};
+
+export function parseConversationId(url: string): string | undefined {
+  const match = /\/c\/([A-Za-z0-9-]+)/.exec(url);
+  return match?.[1];
+}
+
+export async function readPageState(page: PageLike): Promise<PageState> {
+  const url = typeof page.url === "function" ? await page.url() : "";
+  const title = typeof page.title === "function" ? await page.title().catch(() => undefined) : undefined;
+  const visibleText = await readVisibleText(page);
+  const blocker = classifyVisibleText(visibleText);
+  const signedIn = isLikelySignedIn(visibleText) && blocker?.kind !== "login_required";
+  const conversationId = parseConversationId(url);
+
+  const state: PageState = {
+    url,
+    visibleText: compactVisibleText(visibleText),
+    signedIn
+  };
+
+  if (conversationId !== undefined) {
+    state.conversationId = conversationId;
+  }
+
+  if (title !== undefined) {
+    state.title = title;
+  }
+
+  if (blocker !== undefined) {
+    state.blocker = blocker;
+  }
+
+  return state;
+}
+
+export async function readVisibleText(page: PageLike): Promise<string> {
+  if (typeof page.evaluate === "function") {
+    try {
+      return await page.evaluate(() => document.body?.innerText ?? "");
+    } catch {
+      // Fall back to content parsing below.
+    }
+  }
+
+  if (typeof page.content === "function") {
+    try {
+      const html = await page.content();
+      return htmlToText(html);
+    } catch {
+      return "";
+    }
+  }
+
+  return "";
+}
+
+export function htmlToText(html: string): string {
+  return html
+    .replace(/<script[\s\S]*?<\/script>/gi, " ")
+    .replace(/<style[\s\S]*?<\/style>/gi, " ")
+    .replace(/<[^>]+>/g, " ")
+    .replace(/&nbsp;/g, " ")
+    .replace(/&amp;/g, "&")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function isLikelySignedIn(visibleText: string): boolean {
+  return /\b(New chat|Search chats|Chat with ChatGPT|Recents|Projects)\b/i.test(visibleText);
+}

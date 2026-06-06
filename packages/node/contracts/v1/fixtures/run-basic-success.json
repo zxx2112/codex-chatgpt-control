@@ -1,0 +1,36 @@
+{
+  "schemaVersion": "chatgpt.browser_control.run_result.v1",
+  "result": {
+    "ok": true,
+    "status": "ok",
+    "output_text": "hi",
+    "finalOutput": "hi",
+    "output": [
+      {
+        "type": "message.completed",
+        "role": "assistant",
+        "output_text": "hi",
+        "format": "markdown"
+      }
+    ],
+    "newItems": [
+      {
+        "type": "message.completed",
+        "role": "assistant",
+        "output_text": "hi",
+        "format": "markdown"
+      }
+    ],
+    "interruptions": [],
+    "state": {
+      "id": "state-basic-success",
+      "resumable": false
+    },
+    "activeAgentName": "reviewer",
+    "lastAgentName": "reviewer",
+    "warnings": [],
+    "context": {
+      "timestamp": "2026-06-05T00:00:00.000Z"
+    }
+  }
+}

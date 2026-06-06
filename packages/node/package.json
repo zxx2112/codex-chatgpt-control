@@ -1,0 +1,81 @@
+{
+  "name": "codex-chatgpt-control",
+  "version": "0.1.0-alpha.1",
+  "private": true,
+  "description": "Unofficial SDK for Codex agents controlling visible ChatGPT web sessions.",
+  "type": "module",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/adamallcock/codex-chatgpt-control.git",
+    "directory": "packages/node"
+  },
+  "homepage": "https://github.com/adamallcock/codex-chatgpt-control#readme",
+  "bugs": {
+    "url": "https://github.com/adamallcock/codex-chatgpt-control/issues"
+  },
+  "keywords": [
+    "codex",
+    "chatgpt",
+    "browser-automation",
+    "visible-ui",
+    "agents",
+    "sdk"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "bundle": "esbuild src/index.ts --bundle --platform=node --format=esm --outfile=dist/codex-chatgpt-control.bundle.mjs",
+    "bundle:backend": "esbuild src/scripts/backend-server.ts --bundle --platform=node --format=esm --outfile=dist/codex-chatgpt-control-backend.mjs",
+    "bundle:live-smoke": "esbuild src/scripts/live-smoke-module.ts --bundle --platform=node --format=esm --outfile=dist/codex-chatgpt-control-live-smoke.bundle.mjs",
+    "contract:validate": "node scripts/validate-contract.mjs",
+    "parity:fixtures": "node scripts/check-parity-fixtures.mjs",
+    "test:backend-conformance": "vitest run tests/unit/backend-conformance.test.ts",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "thread": "tsx src/scripts/continue-thread.ts",
+    "smoke:hi": "tsx src/scripts/smoke-hi.ts",
+    "smoke:search": "tsx src/scripts/smoke-search-open-read.ts",
+    "smoke:attach": "tsx src/scripts/smoke-attach-file.ts",
+    "smoke:live": "tsx src/scripts/live-smoke.ts"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/src/index.d.ts",
+      "import": "./dist/src/index.js"
+    },
+    "./backend": {
+      "types": "./dist/src/backend/client.d.ts",
+      "import": "./dist/src/backend/client.js"
+    },
+    "./contracts/v1/manifest.json": "./contracts/v1/manifest.json"
+  },
+  "types": "./dist/src/index.d.ts",
+  "bin": {
+    "codex-chatgpt-control-backend": "./dist/src/scripts/backend-server.js"
+  },
+  "files": [
+    "dist/src/**/*.js",
+    "dist/src/**/*.d.ts",
+    "dist/codex-chatgpt-control.bundle.mjs",
+    "dist/codex-chatgpt-control-backend.mjs",
+    "contracts/v1/**/*.json",
+    "contracts/v1/**/*.ndjson",
+    "references/**/*.md",
+    "README.md",
+    "LICENSE",
+    "CHANGELOG.md",
+    "package.json"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "sideEffects": false,
+  "devDependencies": {
+    "@types/node": "^24.13.1",
+    "ajv": "^8.17.1",
+    "esbuild": "^0.28.0",
+    "tsx": "^4.20.0",
+    "typescript": "^5.8.0",
+    "vitest": "^4.1.8"
+  }
+}

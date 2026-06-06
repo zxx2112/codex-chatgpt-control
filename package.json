@@ -1,0 +1,19 @@
+{
+  "name": "codex-chatgpt-control-repo",
+  "version": "0.1.0-alpha.1",
+  "private": true,
+  "description": "Public source repo for the unofficial codex-chatgpt-control SDK.",
+  "type": "module",
+  "workspaces": [
+    "packages/node"
+  ],
+  "scripts": {
+    "node:test": "npm --prefix packages/node test",
+    "node:build": "npm --prefix packages/node run build",
+    "node:bundle": "npm --prefix packages/node run bundle && npm --prefix packages/node run bundle:backend && npm --prefix packages/node run bundle:live-smoke",
+    "node:contracts": "npm --prefix packages/node run contract:validate && npm --prefix packages/node run parity:fixtures",
+    "python:test": "cd packages/python && python -m unittest discover -s tests",
+    "python:compile": "cd packages/python && python -m compileall -q src examples"
+  },
+  "license": "MIT"
+}

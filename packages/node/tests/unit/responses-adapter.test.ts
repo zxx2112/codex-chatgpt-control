@@ -1,0 +1,112 @@
+import { describe, expect, it } from "vitest";
+import { createChatGPT } from "../../src/client.js";
+import { validateResponsesCreateArgs } from "../../src/runner/responses.js";
+
+describe("Responses adapter validation", () => {
+  it("accepts browser-compatible response fields", () => {
+    const result = validateResponsesCreateArgs({
+      input: "hi",
+      thread: { type: "new" },
+      attachments: [{ path: "/tmp/context.md" }],
+      mode: { effort: "Thinking" },
+      tools: [{ tool: "web_search" }],
+      text: { format: "markdown" },
+      stream: false,
+      report: false
+    });
+
+    expect(result.ok).toBe(true);
+  });
+
+  it.each([
+    "model",
+    "temperature",
+    "top_p",
+    "seed",
+    "logprobs",
+    "top_logprobs",
+    "previous_response_id",
+    "store",
+    "service_tier",
+    "max_output_tokens",
+    "parallel_tool_calls",
+    "truncation"
+  ])("rejects API-only field %s", field => {
+    const result = validateResponsesCreateArgs({
+      input: "hi",
+      [field]: "bad"
+    } as Record<string, unknown>);
+
+    expect(result.ok).toBe(false);
+    expect(result.unsupported[0]).toMatchObject({
+      path: field,
+      reason: expect.stringContaining("visible ChatGPT browser control")
+    });
+    expect(result.unsupported[0]?.alternative).toBeTruthy();
+  });
+
+  it("rejects hidden instructions unless visible prefix is explicit", () => {
+    const result = validateResponsesCreateArgs({
+      input: "hi",
+      instructions: "hidden system semantics"
+    });
+
+    expect(result.ok).toBe(false);
+    expect(result.unsupported[0]?.path).toBe("instructions");
+    expect(result.unsupported[0]?.alternative).toContain("instructionsMode");
+  });
+
+  it("accepts instructions only when visible prefix is explicit", () => {
+    const result = validateResponsesCreateArgs({
+      input: "hi",
+      instructions: "These will be sent visibly.",
+      instructionsMode: "visible_prefix"
+    });
+
+    expect(result.ok).toBe(true);
+  });
+
+  it("returns an unsupported browser response without submitting prompts", async () => {
+    const chatgpt = createChatGPT({ limits: { maxPromptsPerRun: 0 } });
+
+    const response = await chatgpt.responses.create({
+      input: "hi",
+      model: "gpt-5.5"
+    } as Record<string, unknown>);
+
+    expect(response).toMatchObject({
+      object: "chatgpt.browser.response",
+      status: "unsupported",
+      output_text: "",
+      output: [],
+      browser_control: {
+        visibleUi: true,
+        resultStatus: "unsupported",
+        unsupported: [
+          expect.objectContaining({
+            path: "model"
+          })
+        ]
+      }
+    });
+  });
+
+  it("maps accepted calls through the runner response shape", async () => {
+    const chatgpt = createChatGPT({ limits: { maxPromptsPerRun: 0 } });
+
+    const response = await chatgpt.responses.create({
+      input: "hi",
+      thread: { type: "new" },
+      text: { format: "markdown" },
+      stream: false
+    });
+
+    expect(response.object).toBe("chatgpt.browser.response");
+    expect(response.status).toBe("needs_confirmation");
+    expect(response.browser_control.resultStatus).toBe("needs_confirmation");
+    expect(response.output[0]).toMatchObject({
+      type: "run.blocked",
+      blocker: expect.objectContaining({ code: "run_budget_exceeded" })
+    });
+  });
+});

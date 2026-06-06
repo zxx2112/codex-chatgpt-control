@@ -1,0 +1,64 @@
+name: codex-chatgpt-control-parity
+
+on:
+  push:
+    paths:
+      - ".github/workflows/parity.yml"
+      - "packages/node/**"
+      - "packages/python/**"
+  pull_request:
+    paths:
+      - ".github/workflows/parity.yml"
+      - "packages/node/**"
+      - "packages/python/**"
+
+jobs:
+  node-backend-contracts:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: packages/node
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: packages/node/package-lock.json
+      - run: npm ci
+      - run: npm test
+      - run: npm run build
+      - run: npm run bundle
+      - run: npm run bundle:live-smoke
+      - run: npm run bundle:backend
+      - run: npm run contract:validate
+      - run: npm run parity:fixtures
+      - run: npm run test:backend-conformance
+
+  python-parity:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: packages/python
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: packages/node/package-lock.json
+      - name: Build backend bundle for Python smoke
+        working-directory: packages/node
+        run: |
+          npm ci
+          npm run bundle:backend
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: python -m pip install -e .[dev]
+      - run: python -m unittest discover -s tests
+      - run: python -m compileall -q src
+      - run: python -m compileall -q examples
+      - run: python -m pyright --pythonpath "$(which python)" src tests
+      - run: python scripts/live_smoke.py --mode ordinary-shell

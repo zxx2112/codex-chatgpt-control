@@ -1,0 +1,29 @@
+{
+  "args": {
+    "prompt": "message to send or workflow-specific input",
+    "report": "optional redacted report settings",
+    "thread": "optional thread selector"
+  },
+  "blockers": [
+    "browser_bridge_unavailable",
+    "login_required",
+    "captcha",
+    "rate_limit",
+    "selector_drift"
+  ],
+  "defaults": {
+    "read": {
+      "format": "markdown"
+    },
+    "wait": true
+  },
+  "defaultTimeoutMs": 120000,
+  "examples": [
+    "const agent = chatgpt.agent({ name: \"reviewer\", instructions: \"Review deeply.\" }); await chatgpt.runner.run(agent, { input: \"Review this.\", thread: { type: \"new\" } });"
+  ],
+  "layer": "workflow",
+  "name": "runner.run",
+  "retryPolicy": "Return structured CommandResult failures; do not resubmit prompts unless the sequence policy permits unmatched-turn recovery.",
+  "risk": "medium",
+  "summary": "Agents-style facade: run a visible ChatGPT browser-control agent against input, files, thread, mode, and response options."
+}

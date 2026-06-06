@@ -1,0 +1,27 @@
+{
+  "schemaVersion": "chatgpt.browser_control.response.v1",
+  "response": {
+    "id": "chatgpt-browser-response-basic",
+    "object": "chatgpt.browser.response",
+    "created_at": 1780617600,
+    "status": "ok",
+    "output_text": "hi",
+    "output": [
+      {
+        "type": "message.completed",
+        "role": "assistant",
+        "output_text": "hi",
+        "format": "markdown"
+      }
+    ],
+    "browser_control": {
+      "visibleUi": true,
+      "resultStatus": "ok",
+      "thread": {
+        "url": "https://chatgpt.com/c/example-basic",
+        "conversationId": "example-basic",
+        "title": "Basic"
+      }
+    }
+  }
+}

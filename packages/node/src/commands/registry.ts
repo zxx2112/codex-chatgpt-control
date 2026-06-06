@@ -1,0 +1,251 @@
+import { riskForCommand, type RiskLevel } from "../safety/risk.js";
+
+export type CommandLayer = "workflow" | "primitive" | "diagnostic" | "report";
+
+export type CommandDescriptor = {
+  name: string;
+  layer: CommandLayer;
+  summary: string;
+  risk: RiskLevel;
+  defaultTimeoutMs?: number;
+  args: Record<string, string>;
+  defaults: Record<string, unknown>;
+  retryPolicy: string;
+  blockers: string[];
+  examples: string[];
+};
+
+const descriptors: CommandDescriptor[] = [
+  workflow("ask", "Ask ChatGPT in a new or selected thread, optionally with files, wait/read, downloads, and reports.", [
+    `await chatgpt.ask({ prompt: "reply with the word hi", wait: true, read: true });`
+  ]),
+  workflow("askInThread", "Open an existing thread by URL, conversation id, title, or search query, then ask and read.", [
+    `await chatgpt.askInThread({ thread: { type: "search", query: "Naming macOS Utility" }, prompt: "Continue." });`
+  ]),
+  workflow("askWithFiles", "Attach absolute local file paths, ask, wait, and read.", [
+    `await chatgpt.askWithFiles({ files: ["/absolute/path/brief.md"], prompt: "Summarize this.", wait: true });`
+  ]),
+  workflow("askAndDownload", "Ask ChatGPT to produce a visible downloadable output and save the latest exposed file.", [
+    `await chatgpt.askAndDownload({ prompt: "Create a CSV.", download: { destDir: "/tmp/out" }, wait: true });`
+  ]),
+  workflow("runMessages", "Run sequential prompts where later prompts can use earlier step data.", [
+    `await chatgpt.runMessages({ messages: [{ id: "first", prompt: "alpha" }, { id: "second", prompt: "beta" }] });`
+  ]),
+  workflow("runner.run", "Agents-style facade: run a visible ChatGPT browser-control agent against input, files, thread, mode, and response options.", [
+    `const agent = chatgpt.agent({ name: "reviewer", instructions: "Review deeply." }); await chatgpt.runner.run(agent, { input: "Review this.", thread: { type: "new" } });`
+  ]),
+  workflow("responses.create", "Narrow Responses-shaped adapter over the visible ChatGPT browser-control runner; rejects unsupported API-only fields before prompt submission.", [
+    `await chatgpt.responses.create({ input: "Summarize.", thread: { type: "current" }, text: { format: "markdown" }, stream: false });`
+  ]),
+  workflow("copyLatest", "Copy or DOM-read the latest assistant response with Markdown-first fidelity.", [
+    `await chatgpt.copyLatest({ prefer: "clipboard" });`
+  ]),
+  workflow("runPlan", "Execute an inline SequencePlan or named macro through the existing sequence engine.", [
+    `await chatgpt.runPlan({ name: "new-ask-read", input: { prompt: "hi" } });`
+  ]),
+  workflow("new-ask-read", "Named macro: open a new thread, ask, wait, and read Markdown.", [
+    `await chatgpt.runPlan({ name: "new-ask-read", input: { prompt: "hi" } });`
+  ]),
+  workflow("find-open-ask-read", "Named macro: search history, open the first match, ask, wait, and read Markdown.", [
+    `await chatgpt.runPlan({ name: "find-open-ask-read", input: { query: "SDK Design Proposal", prompt: "Continue." } });`
+  ]),
+  workflow("find-open-copy-latest", "Named macro: search history, open the first match, and copy/read the latest response.", [
+    `await chatgpt.runPlan({ name: "find-open-copy-latest", input: { query: "SDK Design Proposal" } });`
+  ]),
+  workflow("attach-ask-read", "Named macro: open a new thread, attach files, ask, wait, and read Markdown.", [
+    `await chatgpt.runPlan({ name: "attach-ask-read", input: { files: ["/absolute/path.md"], prompt: "Summarize." } });`
+  ]),
+  workflow("ask-and-download", "Named macro: ask in a new thread and download the latest file affordance.", [
+    `await chatgpt.runPlan({ name: "ask-and-download", input: { prompt: "Create a CSV.", destDir: "/tmp/out" } });`
+  ]),
+  workflow("two-turn", "Named macro: run two sequential prompts in a new thread.", [
+    `await chatgpt.runPlan({ name: "two-turn", input: { first: "alpha", second: "beta" } });`
+  ]),
+  diagnostic("doctor-upload", "Named macro: preflight bridge, login, and upload permission remediation.", [
+    `await chatgpt.runPlan({ name: "doctor-upload" });`
+  ]),
+  report("redacted-run-report", "Named macro: create a redacted report for a supplied CommandResult.", [
+    `await chatgpt.runPlan({ name: "redacted-run-report", input: { result } });`
+  ]),
+  diagnostic("doctor", "Preflight browser bridge, login, upload, download, clipboard, mode, and tool readiness.", [
+    `await chatgpt.doctor({ check: ["bridge", "login", "upload"] });`
+  ]),
+  report("createReport", "Write a durable redacted run report for a command result.", [
+    `await chatgpt.createReport(result, { destDir: "/tmp/reports" });`
+  ]),
+  primitive("session.bootstrap", "Attach to ChatGPT in Chrome and detect login/blocker state.", 30000),
+  primitive("threads.new", "Open a new ChatGPT thread.", 30000),
+  primitive("threads.search", "Search visible ChatGPT history by query.", 30000),
+  primitive("threads.open", "Open a thread by URL, conversation id, title, or search result.", 30000),
+  primitive("messages.compose", "Fill the composer without submitting.", 30000),
+  primitive("messages.submit", "Submit the current composer contents.", 30000),
+  primitive("messages.ask", "Compose, submit, optionally wait, and optionally read.", 120000),
+  primitive("messages.wait", "Wait for the latest assistant response to stabilize.", 120000),
+  primitive("messages.readLatest", "Read the latest message as Markdown, normalized text, blocks, or HTML.", 30000),
+  primitive("messages.waitAndRead", "Wait for completion and read the latest message.", 120000),
+  primitive("files.attach", "Attach absolute local file paths through visible ChatGPT upload controls.", 180000),
+  primitive("files.downloadLatest", "Download the latest visible ChatGPT file affordance.", 120000),
+  primitive("response.copy", "Click Copy response and return clipboard Markdown, with DOM fallback.", 5000),
+  primitive("modes.set", "Select a visible model or effort candidate when unambiguous.", 30000),
+  primitive("tools.select", "Select a visible ChatGPT tool when unambiguous.", 30000)
+];
+
+export function commandDescriptors(): CommandDescriptor[] {
+  return descriptors.map(cloneDescriptor);
+}
+
+export function describeCommand(name: string): CommandDescriptor | undefined {
+  const descriptor = descriptors.find(item => item.name === name);
+  if (descriptor === undefined) return undefined;
+  return cloneDescriptor(descriptor);
+}
+
+export function helpText(topic?: string): string {
+  if (topic !== undefined) {
+    const descriptor = describeCommand(topic);
+    if (descriptor === undefined) return `No ChatGPT browser-control command is registered as "${topic}".`;
+    return [
+      `${descriptor.name} (${descriptor.layer}, ${descriptor.risk} risk)`,
+      descriptor.summary,
+      descriptor.defaultTimeoutMs === undefined ? undefined : `Default timeout: ${descriptor.defaultTimeoutMs} ms`,
+      Object.keys(descriptor.args).length === 0 ? undefined : `Args: ${Object.entries(descriptor.args).map(([name, description]) => `${name} (${description})`).join(", ")}`,
+      Object.keys(descriptor.defaults).length === 0 ? undefined : `Defaults: ${JSON.stringify(descriptor.defaults)}`,
+      `Retry policy: ${descriptor.retryPolicy}`,
+      descriptor.blockers.length === 0 ? undefined : `Blockers: ${descriptor.blockers.join(", ")}`,
+      descriptor.examples.length === 0 ? undefined : `Example: ${descriptor.examples[0]}`
+    ].filter((line): line is string => line !== undefined).join("\n");
+  }
+
+  const grouped = groupByLayer(descriptors);
+  return [
+    "ChatGPT browser-control SDK commands",
+    "",
+    ...(["workflow", "diagnostic", "report", "primitive"] as CommandLayer[])
+      .flatMap(layer => [
+        `${layer}:`,
+        ...(grouped[layer] ?? []).map(descriptor => `- ${descriptor.name}: ${descriptor.summary}`)
+      ])
+  ].join("\n");
+}
+
+function workflow(name: string, summary: string, examples: string[]): CommandDescriptor {
+  return {
+    name,
+    layer: "workflow",
+    summary,
+    risk: "medium",
+    defaultTimeoutMs: 120000,
+    args: workflowArgs(name),
+    defaults: workflowDefaults(name),
+    retryPolicy: "Return structured CommandResult failures; do not resubmit prompts unless the sequence policy permits unmatched-turn recovery.",
+    blockers: commonBlockers(),
+    examples
+  };
+}
+
+function diagnostic(name: string, summary: string, examples: string[]): CommandDescriptor {
+  return {
+    name,
+    layer: "diagnostic",
+    summary,
+    risk: "low",
+    defaultTimeoutMs: 30000,
+    args: diagnosticArgs(name),
+    defaults: {},
+    retryPolicy: "Return structured readiness checks; retry only after the reported blocker or permission setting changes.",
+    blockers: ["browser_bridge_unavailable", "login_required", "selector_drift"],
+    examples
+  };
+}
+
+function report(name: string, summary: string, examples: string[]): CommandDescriptor {
+  return {
+    name,
+    layer: "report",
+    summary,
+    risk: "low",
+    defaultTimeoutMs: 5000,
+    args: reportArgs(name),
+    defaults: { includeContent: false, maxPreviewChars: 240 },
+    retryPolicy: "Do not retry blindly; preserve redaction defaults and report filesystem errors as CommandResult failures.",
+    blockers: ["permission"],
+    examples
+  };
+}
+
+function primitive(name: string, summary: string, defaultTimeoutMs: number): CommandDescriptor {
+  return {
+    name,
+    layer: "primitive",
+    summary,
+    risk: riskForCommand(name),
+    defaultTimeoutMs,
+    args: primitiveArgs(name),
+    defaults: {},
+    retryPolicy: "Return structured CommandResult failures; retry only when the blocker is recoverable and no duplicate prompt will be submitted.",
+    blockers: primitiveBlockers(name),
+    examples: []
+  };
+}
+
+function workflowArgs(name: string): Record<string, string> {
+  if (name === "find-open-copy-latest") return { query: "history search query" };
+  if (name === "find-open-ask-read") return { query: "history search query", prompt: "message to send" };
+  if (name === "attach-ask-read") return { files: "absolute local file paths", prompt: "message to send" };
+  if (name === "ask-and-download") return { prompt: "message to send", destDir: "download destination directory" };
+  if (name === "two-turn") return { first: "first message", second: "second message" };
+  if (name === "new-ask-read") return { prompt: "message to send" };
+  return { prompt: "message to send or workflow-specific input", thread: "optional thread selector", report: "optional redacted report settings" };
+}
+
+function workflowDefaults(name: string): Record<string, unknown> {
+  if (name === "copyLatest" || name === "find-open-copy-latest") return { prefer: "clipboard", format: "markdown" };
+  if (name === "runPlan") return {};
+  return { wait: true, read: { format: "markdown" } };
+}
+
+function diagnosticArgs(name: string): Record<string, string> {
+  if (name === "doctor-upload") return {};
+  return { check: "optional list of readiness checks" };
+}
+
+function reportArgs(name: string): Record<string, string> {
+  if (name === "redacted-run-report") return { result: "CommandResult to persist" };
+  return { result: "CommandResult to persist", destDir: "optional report directory" };
+}
+
+function primitiveArgs(name: string): Record<string, string> {
+  if (name === "messages.readLatest") return { role: "assistant or user", format: "markdown, normalized_text, visible_text, html, blocks, or all" };
+  if (name === "response.copy") return { prefer: "clipboard or dom", format: "markdown, normalized_text, visible_text, html, blocks, or all" };
+  if (name.startsWith("threads.search")) return { query: "history search query" };
+  if (name.startsWith("files.attach")) return { paths: "absolute local file paths" };
+  return {};
+}
+
+function primitiveBlockers(name: string): string[] {
+  if (name.startsWith("files.attach")) return ["browser_bridge_unavailable", "login_required", "permission", "upload_failed"];
+  if (name.startsWith("files.download")) return ["browser_bridge_unavailable", "login_required", "download_unavailable"];
+  if (name.startsWith("modes.") || name.startsWith("tools.")) return ["browser_bridge_unavailable", "login_required", "selector_drift"];
+  return commonBlockers();
+}
+
+function commonBlockers(): string[] {
+  return ["browser_bridge_unavailable", "login_required", "captcha", "rate_limit", "selector_drift"];
+}
+
+function groupByLayer(items: CommandDescriptor[]): Record<CommandLayer, CommandDescriptor[]> {
+  return items.reduce<Record<CommandLayer, CommandDescriptor[]>>((grouped, item) => {
+    grouped[item.layer].push(item);
+    return grouped;
+  }, { workflow: [], primitive: [], diagnostic: [], report: [] });
+}
+
+function cloneDescriptor(descriptor: CommandDescriptor): CommandDescriptor {
+  return {
+    ...descriptor,
+    args: { ...descriptor.args },
+    defaults: { ...descriptor.defaults },
+    blockers: [...descriptor.blockers],
+    examples: [...descriptor.examples]
+  };
+}

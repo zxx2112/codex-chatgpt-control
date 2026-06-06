@@ -1,0 +1,16 @@
+{
+  "result": {
+    "context": {
+      "timestamp": "2026-06-06T00:00:00.000Z"
+    },
+    "data": {
+      "bytes": 335,
+      "includeContent": false,
+      "path": "/tmp/codex-chatgpt-control/reports/contract-fixtures/fixed-contract-report.json"
+    },
+    "ok": true,
+    "status": "ok",
+    "warnings": []
+  },
+  "schemaVersion": "chatgpt.browser_control.command_result.v1"
+}

@@ -1,0 +1,779 @@
+{
+  "ok": true,
+  "requestId": "req_commands",
+  "result": [
+    {
+      "args": {
+        "prompt": "message to send or workflow-specific input",
+        "report": "optional redacted report settings",
+        "thread": "optional thread selector"
+      },
+      "blockers": [
+        "browser_bridge_unavailable",
+        "login_required",
+        "captcha",
+        "rate_limit",
+        "selector_drift"
+      ],
+      "defaults": {
+        "read": {
+          "format": "markdown"
+        },
+        "wait": true
+      },
+      "defaultTimeoutMs": 120000,
+      "examples": [
+        "await chatgpt.ask({ prompt: \"reply with the word hi\", wait: true, read: true });"
+      ],
+      "layer": "workflow",
+      "name": "ask",
+      "retryPolicy": "Return structured CommandResult failures; do not resubmit prompts unless the sequence policy permits unmatched-turn recovery.",
+      "risk": "medium",
+      "summary": "Ask ChatGPT in a new or selected thread, optionally with files, wait/read, downloads, and reports."
+    },
+    {
+      "args": {
+        "prompt": "message to send or workflow-specific input",
+        "report": "optional redacted report settings",
+        "thread": "optional thread selector"
+      },
+      "blockers": [
+        "browser_bridge_unavailable",
+        "login_required",
+        "captcha",
+        "rate_limit",
+        "selector_drift"
+      ],
+      "defaults": {
+        "read": {
+          "format": "markdown"
+        },
+        "wait": true
+      },
+      "defaultTimeoutMs": 120000,
+      "examples": [
+        "await chatgpt.askInThread({ thread: { type: \"search\", query: \"Naming macOS Utility\" }, prompt: \"Continue.\" });"
+      ],
+      "layer": "workflow",
+      "name": "askInThread",
+      "retryPolicy": "Return structured CommandResult failures; do not resubmit prompts unless the sequence policy permits unmatched-turn recovery.",
+      "risk": "medium",
+      "summary": "Open an existing thread by URL, conversation id, title, or search query, then ask and read."
+    },
+    {
+      "args": {
+        "prompt": "message to send or workflow-specific input",
+        "report": "optional redacted report settings",
+        "thread": "optional thread selector"
+      },
+      "blockers": [
+        "browser_bridge_unavailable",
+        "login_required",
+        "captcha",
+        "rate_limit",
+        "selector_drift"
+      ],
+      "defaults": {
+        "read": {
+          "format": "markdown"
+        },
+        "wait": true
+      },
+      "defaultTimeoutMs": 120000,
+      "examples": [
+        "await chatgpt.askWithFiles({ files: [\"/absolute/path/brief.md\"], prompt: \"Summarize this.\", wait: true });"
+      ],
+      "layer": "workflow",
+      "name": "askWithFiles",
+      "retryPolicy": "Return structured CommandResult failures; do not resubmit prompts unless the sequence policy permits unmatched-turn recovery.",
+      "risk": "medium",
+      "summary": "Attach absolute local file paths, ask, wait, and read."
+    },
+    {
+      "args": {
+        "prompt": "message to send or workflow-specific input",
+        "report": "optional redacted report settings",
+        "thread": "optional thread selector"
+      },
+      "blockers": [
+        "browser_bridge_unavailable",
+        "login_required",
+        "captcha",
+        "rate_limit",
+        "selector_drift"
+      ],
+      "defaults": {
+        "read": {
+          "format": "markdown"
+        },
+        "wait": true
+      },
+      "defaultTimeoutMs": 120000,
+      "examples": [
+        "await chatgpt.askAndDownload({ prompt: \"Create a CSV.\", download: { destDir: \"/tmp/out\" }, wait: true });"
+      ],
+      "layer": "workflow",
+      "name": "askAndDownload",
+      "retryPolicy": "Return structured CommandResult failures; do not resubmit prompts unless the sequence policy permits unmatched-turn recovery.",
+      "risk": "medium",
+      "summary": "Ask ChatGPT to produce a visible downloadable output and save the latest exposed file."
+    },
+    {
+      "args": {
+        "prompt": "message to send or workflow-specific input",
+        "report": "optional redacted report settings",
+        "thread": "optional thread selector"
+      },
+      "blockers": [
+        "browser_bridge_unavailable",
+        "login_required",
+        "captcha",
+        "rate_limit",
+        "selector_drift"
+      ],
+      "defaults": {
+        "read": {
+          "format": "markdown"
+        },
+        "wait": true
+      },
+      "defaultTimeoutMs": 120000,
+      "examples": [
+        "await chatgpt.runMessages({ messages: [{ id: \"first\", prompt: \"alpha\" }, { id: \"second\", prompt: \"beta\" }] });"
+      ],
+      "layer": "workflow",
+      "name": "runMessages",
+      "retryPolicy": "Return structured CommandResult failures; do not resubmit prompts unless the sequence policy permits unmatched-turn recovery.",
+      "risk": "medium",
+      "summary": "Run sequential prompts where later prompts can use earlier step data."
+    },
+    {
+      "args": {
+        "prompt": "message to send or workflow-specific input",
+        "report": "optional redacted report settings",
+        "thread": "optional thread selector"
+      },
+      "blockers": [
+        "browser_bridge_unavailable",
+        "login_required",
+        "captcha",
+        "rate_limit",
+        "selector_drift"
+      ],
+      "defaults": {
+        "read": {
+          "format": "markdown"
+        },
+        "wait": true
+      },
+      "defaultTimeoutMs": 120000,
+      "examples": [
+        "const agent = chatgpt.agent({ name: \"reviewer\", instructions: \"Review deeply.\" }); await chatgpt.runner.run(agent, { input: \"Review this.\", thread: { type: \"new\" } });"
+      ],
+      "layer": "workflow",
+      "name": "runner.run",
+      "retryPolicy": "Return structured CommandResult failures; do not resubmit prompts unless the sequence policy permits unmatched-turn recovery.",
+      "risk": "medium",
+      "summary": "Agents-style facade: run a visible ChatGPT browser-control agent against input, files, thread, mode, and response options."
+    },
+    {
+      "args": {
+        "prompt": "message to send or workflow-specific input",
+        "report": "optional redacted report settings",
+        "thread": "optional thread selector"
+      },
+      "blockers": [
+        "browser_bridge_unavailable",
+        "login_required",
+        "captcha",
+        "rate_limit",
+        "selector_drift"
+      ],
+      "defaults": {
+        "read": {
+          "format": "markdown"
+        },
+        "wait": true
+      },
+      "defaultTimeoutMs": 120000,
+      "examples": [
+        "await chatgpt.responses.create({ input: \"Summarize.\", thread: { type: \"current\" }, text: { format: \"markdown\" }, stream: false });"
+      ],
+      "layer": "workflow",
+      "name": "responses.create",
+      "retryPolicy": "Return structured CommandResult failures; do not resubmit prompts unless the sequence policy permits unmatched-turn recovery.",
+      "risk": "medium",
+      "summary": "Narrow Responses-shaped adapter over the visible ChatGPT browser-control runner; rejects unsupported API-only fields before prompt submission."
+    },
+    {
+      "args": {
+        "prompt": "message to send or workflow-specific input",
+        "report": "optional redacted report settings",
+        "thread": "optional thread selector"
+      },
+      "blockers": [
+        "browser_bridge_unavailable",
+        "login_required",
+        "captcha",
+        "rate_limit",
+        "selector_drift"
+      ],
+      "defaults": {
+        "format": "markdown",
+        "prefer": "clipboard"
+      },
+      "defaultTimeoutMs": 120000,
+      "examples": [
+        "await chatgpt.copyLatest({ prefer: \"clipboard\" });"
+      ],
+      "layer": "workflow",
+      "name": "copyLatest",
+      "retryPolicy": "Return structured CommandResult failures; do not resubmit prompts unless the sequence policy permits unmatched-turn recovery.",
+      "risk": "medium",
+      "summary": "Copy or DOM-read the latest assistant response with Markdown-first fidelity."
+    },
+    {
+      "args": {
+        "prompt": "message to send or workflow-specific input",
+        "report": "optional redacted report settings",
+        "thread": "optional thread selector"
+      },
+      "blockers": [
+        "browser_bridge_unavailable",
+        "login_required",
+        "captcha",
+        "rate_limit",
+        "selector_drift"
+      ],
+      "defaults": {},
+      "defaultTimeoutMs": 120000,
+      "examples": [
+        "await chatgpt.runPlan({ name: \"new-ask-read\", input: { prompt: \"hi\" } });"
+      ],
+      "layer": "workflow",
+      "name": "runPlan",
+      "retryPolicy": "Return structured CommandResult failures; do not resubmit prompts unless the sequence policy permits unmatched-turn recovery.",
+      "risk": "medium",
+      "summary": "Execute an inline SequencePlan or named macro through the existing sequence engine."
+    },
+    {
+      "args": {
+        "prompt": "message to send"
+      },
+      "blockers": [
+        "browser_bridge_unavailable",
+        "login_required",
+        "captcha",
+        "rate_limit",
+        "selector_drift"
+      ],
+      "defaults": {
+        "read": {
+          "format": "markdown"
+        },
+        "wait": true
+      },
+      "defaultTimeoutMs": 120000,
+      "examples": [
+        "await chatgpt.runPlan({ name: \"new-ask-read\", input: { prompt: \"hi\" } });"
+      ],
+      "layer": "workflow",
+      "name": "new-ask-read",
+      "retryPolicy": "Return structured CommandResult failures; do not resubmit prompts unless the sequence policy permits unmatched-turn recovery.",
+      "risk": "medium",
+      "summary": "Named macro: open a new thread, ask, wait, and read Markdown."
+    },
+    {
+      "args": {
+        "prompt": "message to send",
+        "query": "history search query"
+      },
+      "blockers": [
+        "browser_bridge_unavailable",
+        "login_required",
+        "captcha",
+        "rate_limit",
+        "selector_drift"
+      ],
+      "defaults": {
+        "read": {
+          "format": "markdown"
+        },
+        "wait": true
+      },
+      "defaultTimeoutMs": 120000,
+      "examples": [
+        "await chatgpt.runPlan({ name: \"find-open-ask-read\", input: { query: \"SDK Design Proposal\", prompt: \"Continue.\" } });"
+      ],
+      "layer": "workflow",
+      "name": "find-open-ask-read",
+      "retryPolicy": "Return structured CommandResult failures; do not resubmit prompts unless the sequence policy permits unmatched-turn recovery.",
+      "risk": "medium",
+      "summary": "Named macro: search history, open the first match, ask, wait, and read Markdown."
+    },
+    {
+      "args": {
+        "query": "history search query"
+      },
+      "blockers": [
+        "browser_bridge_unavailable",
+        "login_required",
+        "captcha",
+        "rate_limit",
+        "selector_drift"
+      ],
+      "defaults": {
+        "format": "markdown",
+        "prefer": "clipboard"
+      },
+      "defaultTimeoutMs": 120000,
+      "examples": [
+        "await chatgpt.runPlan({ name: \"find-open-copy-latest\", input: { query: \"SDK Design Proposal\" } });"
+      ],
+      "layer": "workflow",
+      "name": "find-open-copy-latest",
+      "retryPolicy": "Return structured CommandResult failures; do not resubmit prompts unless the sequence policy permits unmatched-turn recovery.",
+      "risk": "medium",
+      "summary": "Named macro: search history, open the first match, and copy/read the latest response."
+    },
+    {
+      "args": {
+        "files": "absolute local file paths",
+        "prompt": "message to send"
+      },
+      "blockers": [
+        "browser_bridge_unavailable",
+        "login_required",
+        "captcha",
+        "rate_limit",
+        "selector_drift"
+      ],
+      "defaults": {
+        "read": {
+          "format": "markdown"
+        },
+        "wait": true
+      },
+      "defaultTimeoutMs": 120000,
+      "examples": [
+        "await chatgpt.runPlan({ name: \"attach-ask-read\", input: { files: [\"/absolute/path.md\"], prompt: \"Summarize.\" } });"
+      ],
+      "layer": "workflow",
+      "name": "attach-ask-read",
+      "retryPolicy": "Return structured CommandResult failures; do not resubmit prompts unless the sequence policy permits unmatched-turn recovery.",
+      "risk": "medium",
+      "summary": "Named macro: open a new thread, attach files, ask, wait, and read Markdown."
+    },
+    {
+      "args": {
+        "destDir": "download destination directory",
+        "prompt": "message to send"
+      },
+      "blockers": [
+        "browser_bridge_unavailable",
+        "login_required",
+        "captcha",
+        "rate_limit",
+        "selector_drift"
+      ],
+      "defaults": {
+        "read": {
+          "format": "markdown"
+        },
+        "wait": true
+      },
+      "defaultTimeoutMs": 120000,
+      "examples": [
+        "await chatgpt.runPlan({ name: \"ask-and-download\", input: { prompt: \"Create a CSV.\", destDir: \"/tmp/out\" } });"
+      ],
+      "layer": "workflow",
+      "name": "ask-and-download",
+      "retryPolicy": "Return structured CommandResult failures; do not resubmit prompts unless the sequence policy permits unmatched-turn recovery.",
+      "risk": "medium",
+      "summary": "Named macro: ask in a new thread and download the latest file affordance."
+    },
+    {
+      "args": {
+        "first": "first message",
+        "second": "second message"
+      },
+      "blockers": [
+        "browser_bridge_unavailable",
+        "login_required",
+        "captcha",
+        "rate_limit",
+        "selector_drift"
+      ],
+      "defaults": {
+        "read": {
+          "format": "markdown"
+        },
+        "wait": true
+      },
+      "defaultTimeoutMs": 120000,
+      "examples": [
+        "await chatgpt.runPlan({ name: \"two-turn\", input: { first: \"alpha\", second: \"beta\" } });"
+      ],
+      "layer": "workflow",
+      "name": "two-turn",
+      "retryPolicy": "Return structured CommandResult failures; do not resubmit prompts unless the sequence policy permits unmatched-turn recovery.",
+      "risk": "medium",
+      "summary": "Named macro: run two sequential prompts in a new thread."
+    },
+    {
+      "args": {},
+      "blockers": [
+        "browser_bridge_unavailable",
+        "login_required",
+        "selector_drift"
+      ],
+      "defaults": {},
+      "defaultTimeoutMs": 30000,
+      "examples": [
+        "await chatgpt.runPlan({ name: \"doctor-upload\" });"
+      ],
+      "layer": "diagnostic",
+      "name": "doctor-upload",
+      "retryPolicy": "Return structured readiness checks; retry only after the reported blocker or permission setting changes.",
+      "risk": "low",
+      "summary": "Named macro: preflight bridge, login, and upload permission remediation."
+    },
+    {
+      "args": {
+        "result": "CommandResult to persist"
+      },
+      "blockers": [
+        "permission"
+      ],
+      "defaults": {
+        "includeContent": false,
+        "maxPreviewChars": 240
+      },
+      "defaultTimeoutMs": 5000,
+      "examples": [
+        "await chatgpt.runPlan({ name: \"redacted-run-report\", input: { result } });"
+      ],
+      "layer": "report",
+      "name": "redacted-run-report",
+      "retryPolicy": "Do not retry blindly; preserve redaction defaults and report filesystem errors as CommandResult failures.",
+      "risk": "low",
+      "summary": "Named macro: create a redacted report for a supplied CommandResult."
+    },
+    {
+      "args": {
+        "check": "optional list of readiness checks"
+      },
+      "blockers": [
+        "browser_bridge_unavailable",
+        "login_required",
+        "selector_drift"
+      ],
+      "defaults": {},
+      "defaultTimeoutMs": 30000,
+      "examples": [
+        "await chatgpt.doctor({ check: [\"bridge\", \"login\", \"upload\"] });"
+      ],
+      "layer": "diagnostic",
+      "name": "doctor",
+      "retryPolicy": "Return structured readiness checks; retry only after the reported blocker or permission setting changes.",
+      "risk": "low",
+      "summary": "Preflight browser bridge, login, upload, download, clipboard, mode, and tool readiness."
+    },
+    {
+      "args": {
+        "destDir": "optional report directory",
+        "result": "CommandResult to persist"
+      },
+      "blockers": [
+        "permission"
+      ],
+      "defaults": {
+        "includeContent": false,
+        "maxPreviewChars": 240
+      },
+      "defaultTimeoutMs": 5000,
+      "examples": [
+        "await chatgpt.createReport(result, { destDir: \"/tmp/reports\" });"
+      ],
+      "layer": "report",
+      "name": "createReport",
+      "retryPolicy": "Do not retry blindly; preserve redaction defaults and report filesystem errors as CommandResult failures.",
+      "risk": "low",
+      "summary": "Write a durable redacted run report for a command result."
+    },
+    {
+      "args": {},
+      "blockers": [
+        "browser_bridge_unavailable",
+        "login_required",
+        "captcha",
+        "rate_limit",
+        "selector_drift"
+      ],
+      "defaults": {},
+      "defaultTimeoutMs": 30000,
+      "examples": [],
+      "layer": "primitive",
+      "name": "session.bootstrap",
+      "retryPolicy": "Return structured CommandResult failures; retry only when the blocker is recoverable and no duplicate prompt will be submitted.",
+      "risk": "low",
+      "summary": "Attach to ChatGPT in Chrome and detect login/blocker state."
+    },
+    {
+      "args": {},
+      "blockers": [
+        "browser_bridge_unavailable",
+        "login_required",
+        "captcha",
+        "rate_limit",
+        "selector_drift"
+      ],
+      "defaults": {},
+      "defaultTimeoutMs": 30000,
+      "examples": [],
+      "layer": "primitive",
+      "name": "threads.new",
+      "retryPolicy": "Return structured CommandResult failures; retry only when the blocker is recoverable and no duplicate prompt will be submitted.",
+      "risk": "low",
+      "summary": "Open a new ChatGPT thread."
+    },
+    {
+      "args": {
+        "query": "history search query"
+      },
+      "blockers": [
+        "browser_bridge_unavailable",
+        "login_required",
+        "captcha",
+        "rate_limit",
+        "selector_drift"
+      ],
+      "defaults": {},
+      "defaultTimeoutMs": 30000,
+      "examples": [],
+      "layer": "primitive",
+      "name": "threads.search",
+      "retryPolicy": "Return structured CommandResult failures; retry only when the blocker is recoverable and no duplicate prompt will be submitted.",
+      "risk": "medium",
+      "summary": "Search visible ChatGPT history by query."
+    },
+    {
+      "args": {},
+      "blockers": [
+        "browser_bridge_unavailable",
+        "login_required",
+        "captcha",
+        "rate_limit",
+        "selector_drift"
+      ],
+      "defaults": {},
+      "defaultTimeoutMs": 30000,
+      "examples": [],
+      "layer": "primitive",
+      "name": "threads.open",
+      "retryPolicy": "Return structured CommandResult failures; retry only when the blocker is recoverable and no duplicate prompt will be submitted.",
+      "risk": "medium",
+      "summary": "Open a thread by URL, conversation id, title, or search result."
+    },
+    {
+      "args": {},
+      "blockers": [
+        "browser_bridge_unavailable",
+        "login_required",
+        "captcha",
+        "rate_limit",
+        "selector_drift"
+      ],
+      "defaults": {},
+      "defaultTimeoutMs": 30000,
+      "examples": [],
+      "layer": "primitive",
+      "name": "messages.compose",
+      "retryPolicy": "Return structured CommandResult failures; retry only when the blocker is recoverable and no duplicate prompt will be submitted.",
+      "risk": "low",
+      "summary": "Fill the composer without submitting."
+    },
+    {
+      "args": {},
+      "blockers": [
+        "browser_bridge_unavailable",
+        "login_required",
+        "captcha",
+        "rate_limit",
+        "selector_drift"
+      ],
+      "defaults": {},
+      "defaultTimeoutMs": 30000,
+      "examples": [],
+      "layer": "primitive",
+      "name": "messages.submit",
+      "retryPolicy": "Return structured CommandResult failures; retry only when the blocker is recoverable and no duplicate prompt will be submitted.",
+      "risk": "medium",
+      "summary": "Submit the current composer contents."
+    },
+    {
+      "args": {},
+      "blockers": [
+        "browser_bridge_unavailable",
+        "login_required",
+        "captcha",
+        "rate_limit",
+        "selector_drift"
+      ],
+      "defaults": {},
+      "defaultTimeoutMs": 120000,
+      "examples": [],
+      "layer": "primitive",
+      "name": "messages.ask",
+      "retryPolicy": "Return structured CommandResult failures; retry only when the blocker is recoverable and no duplicate prompt will be submitted.",
+      "risk": "medium",
+      "summary": "Compose, submit, optionally wait, and optionally read."
+    },
+    {
+      "args": {},
+      "blockers": [
+        "browser_bridge_unavailable",
+        "login_required",
+        "captcha",
+        "rate_limit",
+        "selector_drift"
+      ],
+      "defaults": {},
+      "defaultTimeoutMs": 120000,
+      "examples": [],
+      "layer": "primitive",
+      "name": "messages.wait",
+      "retryPolicy": "Return structured CommandResult failures; retry only when the blocker is recoverable and no duplicate prompt will be submitted.",
+      "risk": "low",
+      "summary": "Wait for the latest assistant response to stabilize."
+    },
+    {
+      "args": {
+        "format": "markdown, normalized_text, visible_text, html, blocks, or all",
+        "role": "assistant or user"
+      },
+      "blockers": [
+        "browser_bridge_unavailable",
+        "login_required",
+        "captcha",
+        "rate_limit",
+        "selector_drift"
+      ],
+      "defaults": {},
+      "defaultTimeoutMs": 30000,
+      "examples": [],
+      "layer": "primitive",
+      "name": "messages.readLatest",
+      "retryPolicy": "Return structured CommandResult failures; retry only when the blocker is recoverable and no duplicate prompt will be submitted.",
+      "risk": "medium",
+      "summary": "Read the latest message as Markdown, normalized text, blocks, or HTML."
+    },
+    {
+      "args": {},
+      "blockers": [
+        "browser_bridge_unavailable",
+        "login_required",
+        "captcha",
+        "rate_limit",
+        "selector_drift"
+      ],
+      "defaults": {},
+      "defaultTimeoutMs": 120000,
+      "examples": [],
+      "layer": "primitive",
+      "name": "messages.waitAndRead",
+      "retryPolicy": "Return structured CommandResult failures; retry only when the blocker is recoverable and no duplicate prompt will be submitted.",
+      "risk": "medium",
+      "summary": "Wait for completion and read the latest message."
+    },
+    {
+      "args": {
+        "paths": "absolute local file paths"
+      },
+      "blockers": [
+        "browser_bridge_unavailable",
+        "login_required",
+        "permission",
+        "upload_failed"
+      ],
+      "defaults": {},
+      "defaultTimeoutMs": 180000,
+      "examples": [],
+      "layer": "primitive",
+      "name": "files.attach",
+      "retryPolicy": "Return structured CommandResult failures; retry only when the blocker is recoverable and no duplicate prompt will be submitted.",
+      "risk": "medium",
+      "summary": "Attach absolute local file paths through visible ChatGPT upload controls."
+    },
+    {
+      "args": {},
+      "blockers": [
+        "browser_bridge_unavailable",
+        "login_required",
+        "download_unavailable"
+      ],
+      "defaults": {},
+      "defaultTimeoutMs": 120000,
+      "examples": [],
+      "layer": "primitive",
+      "name": "files.downloadLatest",
+      "retryPolicy": "Return structured CommandResult failures; retry only when the blocker is recoverable and no duplicate prompt will be submitted.",
+      "risk": "medium",
+      "summary": "Download the latest visible ChatGPT file affordance."
+    },
+    {
+      "args": {
+        "format": "markdown, normalized_text, visible_text, html, blocks, or all",
+        "prefer": "clipboard or dom"
+      },
+      "blockers": [
+        "browser_bridge_unavailable",
+        "login_required",
+        "captcha",
+        "rate_limit",
+        "selector_drift"
+      ],
+      "defaults": {},
+      "defaultTimeoutMs": 5000,
+      "examples": [],
+      "layer": "primitive",
+      "name": "response.copy",
+      "retryPolicy": "Return structured CommandResult failures; retry only when the blocker is recoverable and no duplicate prompt will be submitted.",
+      "risk": "medium",
+      "summary": "Click Copy response and return clipboard Markdown, with DOM fallback."
+    },
+    {
+      "args": {},
+      "blockers": [
+        "browser_bridge_unavailable",
+        "login_required",
+        "selector_drift"
+      ],
+      "defaults": {},
+      "defaultTimeoutMs": 30000,
+      "examples": [],
+      "layer": "primitive",
+      "name": "modes.set",
+      "retryPolicy": "Return structured CommandResult failures; retry only when the blocker is recoverable and no duplicate prompt will be submitted.",
+      "risk": "medium",
+      "summary": "Select a visible model or effort candidate when unambiguous."
+    },
+    {
+      "args": {},
+      "blockers": [
+        "browser_bridge_unavailable",
+        "login_required",
+        "selector_drift"
+      ],
+      "defaults": {},
+      "defaultTimeoutMs": 30000,
+      "examples": [],
+      "layer": "primitive",
+      "name": "tools.select",
+      "retryPolicy": "Return structured CommandResult failures; retry only when the blocker is recoverable and no duplicate prompt will be submitted.",
+      "risk": "medium",
+      "summary": "Select a visible ChatGPT tool when unambiguous."
+    }
+  ],
+  "schemaVersion": "chatgpt.browser_control.backend_response.v1"
+}

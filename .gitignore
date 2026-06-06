@@ -1,0 +1,17 @@
+node_modules/
+dist/
+build/
+*.egg-info/
+.venv/
+.venv*/
+__pycache__/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.pyright/
+reports/
+*.log
+.DS_Store
+.env
+.env.*
+!.env.example

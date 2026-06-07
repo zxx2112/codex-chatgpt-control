@@ -1,3 +1,5 @@
+#!/usr/bin/env node
+
 import { runBackendStdioServer } from "../backend/stdio-server.js";
 
 await runBackendStdioServer({

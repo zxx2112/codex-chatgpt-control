@@ -1,6 +1,7 @@
 import { mkdir, mkdtemp, stat, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import process from "node:process";
 import { describe, expect, it } from "vitest";
 import { attachFiles, downloadLatestFile, validateAttachPaths } from "../../src/commands/files.js";
 import type { LocatorLike, PageLike } from "../../src/types.js";
@@ -8,6 +9,37 @@ import type { LocatorLike, PageLike } from "../../src/types.js";
 describe("validateAttachPaths", () => {
   it("rejects relative paths", async () => {
     await expect(validateAttachPaths(["notes.txt"])).rejects.toThrow(/absolute/);
+  });
+
+  it("rejects empty and nested relative paths", async () => {
+    await expect(validateAttachPaths([""])).rejects.toThrow(/absolute/);
+    await expect(validateAttachPaths(["notes/file.md"])).rejects.toThrow(/absolute/);
+  });
+
+  it("rejects ambiguous Windows paths", async () => {
+    await expect(validateAttachPaths([String.raw`C:Users\notes.md`])).rejects.toThrow(/absolute/);
+    await expect(validateAttachPaths([String.raw`\tmp\notes.md`])).rejects.toThrow(/absolute/);
+  });
+
+  it("rejects foreign Windows absolute syntax on POSIX hosts", async () => {
+    if (process.platform === "win32") return;
+
+    await expect(validateAttachPaths([String.raw`C:\Users\codex\missing-file.md`])).rejects.toThrow(/absolute/);
+    await expect(validateAttachPaths([String.raw`\\server\share\missing-file.md`])).rejects.toThrow(/absolute/);
+  });
+
+  it("does not validate a POSIX literal filename that looks like a Windows path", async () => {
+    if (process.platform === "win32") return;
+
+    const dir = await mkdtemp(join(tmpdir(), "chatgpt-control-literal-winpath-"));
+    const cwd = process.cwd();
+    try {
+      process.chdir(dir);
+      await writeFile(String.raw`C:\Users\codex\literal.md`, "literal filename");
+      await expect(validateAttachPaths([String.raw`C:\Users\codex\literal.md`])).rejects.toThrow(/absolute/);
+    } finally {
+      process.chdir(cwd);
+    }
   });
 
   it("returns file metadata for readable files", async () => {
@@ -18,6 +50,22 @@ describe("validateAttachPaths", () => {
     await expect(validateAttachPaths([file])).resolves.toEqual([
       { path: file, name: "notes.txt", bytes: 5 }
     ]);
+  });
+
+  it("rejects forward-slash UNC paths on POSIX (treated as relative-ish ambiguity by validateAttachPaths)", async () => {
+    // //server/share/file starts with / so POSIX isAbsolute accepts it.
+    // resolveForHostPath with the current platform (linux/darwin) would pass
+    // the isAbsolutePath check, then try fs.access on it — which will fail
+    // with ENOENT (not an "absolute" error).  This test documents that
+    // validateAttachPaths does NOT reject forward-slash UNC as non-absolute on
+    // POSIX; instead the guard is that the path simply does not exist.
+    // This is intentional: on POSIX, //server/share/ is a valid NFS/SMB mount.
+    if (process.platform === "win32") return;
+    // The path will pass the absolute check and fail at fs.access (ENOENT)
+    await expect(validateAttachPaths(["//server/share/missing-file.md"])).rejects.toThrow();
+    // Importantly, it does NOT throw /absolute/ — it gets past the path check
+    const rejection = validateAttachPaths(["//server/share/missing-file.md"]).catch(e => e);
+    await expect(rejection).resolves.not.toMatchObject({ message: expect.stringMatching(/absolute/) });
   });
 });
 

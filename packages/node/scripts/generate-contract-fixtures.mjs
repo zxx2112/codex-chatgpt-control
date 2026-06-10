@@ -12,6 +12,7 @@ const fixturesDir = join(contractRoot, "fixtures");
 const manifestPath = join(contractRoot, "manifest.json");
 const reportFixtureDir = join(root, "reports", "contract-fixtures");
 const doctorScenarioReportDir = "/tmp/codex-chatgpt-control/reports/contract-fixtures/missing-doctor-reports";
+const filePreflightFixtureDir = "/tmp/codex-chatgpt-control/file-preflight-contract-fixtures";
 
 const {
   createChatGPT,
@@ -26,6 +27,12 @@ const generatedFixtures = [];
 const chatgpt = createChatGPT({ now: () => FIXED_DATE });
 rmSync(reportFixtureDir, { recursive: true, force: true });
 rmSync(doctorScenarioReportDir, { recursive: true, force: true });
+rmSync(filePreflightFixtureDir, { recursive: true, force: true });
+mkdirSync(filePreflightFixtureDir, { recursive: true });
+const filePreflightSpecPath = join(filePreflightFixtureDir, "spec.md");
+const filePreflightContextPath = join(filePreflightFixtureDir, "context.json");
+writeFileSync(filePreflightSpecPath, "hello");
+writeFileSync(filePreflightContextPath, "{\"ok\":true}");
 
 const BLOCKER_EXPLANATION_PROFILES = [
   { kind: "browser_bridge_unavailable", title: "Browser bridge unavailable", category: "environment", severity: "blocked", userActionRequired: false },
@@ -290,13 +297,25 @@ await writeGeneratedFixture(
         target: { type: "conversationId", conversationId: "abc-123" },
         ifMissing: "block"
       },
-      files: ["/absolute/host/path/spec.md"],
+      files: [filePreflightSpecPath, filePreflightContextPath],
       report: { destDir: doctorScenarioReportDir }
     },
     {
       browser: fakeExistingTabsBrowser([
         { id: "other", url: "https://chatgpt.com/c/other", title: "Other Chat" }
       ])
+    }
+  ))
+);
+
+await writeGeneratedFixture(
+  "files-preflight-success.json",
+  "commandResult",
+  "files_preflight_success",
+  commandResultFixture(await backendResult(
+    "files.preflight",
+    {
+      paths: [filePreflightSpecPath, filePreflightContextPath]
     }
   ))
 );

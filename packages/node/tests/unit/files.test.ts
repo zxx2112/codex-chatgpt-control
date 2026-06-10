@@ -1,10 +1,137 @@
-import { mkdir, mkdtemp, stat, writeFile } from "node:fs/promises";
+import { access, chmod, mkdir, mkdtemp, stat, writeFile } from "node:fs/promises";
+import { constants } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import process from "node:process";
 import { describe, expect, it } from "vitest";
-import { attachFiles, downloadLatestFile, validateAttachPaths } from "../../src/commands/files.js";
+import { attachFiles, downloadLatestFile, preflightFiles, validateAttachPaths } from "../../src/commands/files.js";
 import type { LocatorLike, PageLike } from "../../src/types.js";
+
+describe("preflightFiles", () => {
+  it("requires absolute paths and returns a structured blocker", async () => {
+    const result = await preflightFiles({}, { paths: ["notes.txt"] });
+
+    expect(result.ok).toBe(false);
+    expect(result.status).toBe("blocked");
+    expect(result.blocker).toMatchObject({
+      kind: "upload_failed",
+      code: "file_path_not_absolute",
+      fieldPath: "paths[0]"
+    });
+    expect(result.context.timestamp).toBeDefined();
+  });
+
+  it("returns a structured not-found blocker for missing files", async () => {
+    const dir = await mkdtemp(join(tmpdir(), "chatgpt-control-preflight-missing-"));
+    const missing = join(dir, "missing.pdf");
+
+    const result = await preflightFiles({}, { paths: [missing] });
+
+    expect(result.ok).toBe(false);
+    expect(result.status).toBe("not_found");
+    expect(result.blocker).toMatchObject({
+      kind: "not_found",
+      code: "file_missing",
+      fieldPath: "paths[0]"
+    });
+    expect(result.blocker?.message).toContain(missing);
+  });
+
+  it("rejects directories before any upload attempt", async () => {
+    const dir = await mkdtemp(join(tmpdir(), "chatgpt-control-preflight-dir-"));
+
+    const result = await preflightFiles({}, { paths: [dir] });
+
+    expect(result.ok).toBe(false);
+    expect(result.status).toBe("blocked");
+    expect(result.blocker).toMatchObject({
+      kind: "upload_failed",
+      code: "file_path_is_directory",
+      fieldPath: "paths[0]"
+    });
+  });
+
+  it("reports unreadable files as permission blockers when the platform enforces read bits", async () => {
+    const dir = await mkdtemp(join(tmpdir(), "chatgpt-control-preflight-unreadable-"));
+    const file = join(dir, "secret.txt");
+    await writeFile(file, "secret");
+    await chmod(file, 0o000);
+
+    try {
+      const canRead = await access(file, constants.R_OK).then(() => true, () => false);
+      if (canRead) return;
+
+      const result = await preflightFiles({}, { paths: [file] });
+
+      expect(result.ok).toBe(false);
+      expect(result.status).toBe("blocked");
+      expect(result.blocker).toMatchObject({
+        kind: "permission",
+        code: "file_not_readable",
+        fieldPath: "paths[0]"
+      });
+    } finally {
+      await chmod(file, 0o600).catch(() => undefined);
+    }
+  });
+
+  it("warns for duplicate basenames, duplicate resolved paths, and zero-byte files", async () => {
+    const dir = await mkdtemp(join(tmpdir(), "chatgpt-control-preflight-warnings-"));
+    const nested = join(dir, "nested");
+    const other = join(dir, "other");
+    await mkdir(nested);
+    await mkdir(other);
+    const primary = join(nested, "notes.md");
+    const duplicatePath = join(nested, "..", "nested", "notes.md");
+    const duplicateName = join(other, "notes.md");
+    await writeFile(primary, "hello");
+    await writeFile(duplicateName, "");
+
+    const result = await preflightFiles({}, { paths: [primary, duplicatePath, duplicateName] });
+
+    expect(result.ok).toBe(true);
+    expect(result.data?.totalBytes).toBe(10);
+    expect(result.data?.files[0]).toMatchObject({
+      path: primary,
+      name: "notes.md",
+      bytes: 5,
+      extension: ".md",
+      mimeType: "text/markdown",
+      category: "text"
+    });
+    expect(result.warnings).toEqual(expect.arrayContaining([
+      expect.stringContaining("Duplicate resolved file path"),
+      expect.stringContaining("Duplicate file basename"),
+      expect.stringContaining("Zero-byte file")
+    ]));
+  });
+
+  it("enforces per-file and total-byte limits", async () => {
+    const dir = await mkdtemp(join(tmpdir(), "chatgpt-control-preflight-limits-"));
+    const first = join(dir, "first.txt");
+    const second = join(dir, "second.txt");
+    await writeFile(first, "hello");
+    await writeFile(second, "world");
+
+    const tooLarge = await preflightFiles({}, { paths: [first], maxBytesPerFile: 4 });
+    expect(tooLarge.ok).toBe(false);
+    expect(tooLarge.status).toBe("blocked");
+    expect(tooLarge.blocker).toMatchObject({
+      kind: "upload_failed",
+      code: "file_too_large",
+      fieldPath: "paths[0]"
+    });
+
+    const tooMuchTotal = await preflightFiles({}, { paths: [first, second], maxTotalBytes: 9 });
+    expect(tooMuchTotal.ok).toBe(false);
+    expect(tooMuchTotal.status).toBe("blocked");
+    expect(tooMuchTotal.blocker).toMatchObject({
+      kind: "upload_failed",
+      code: "file_total_bytes_exceeded",
+      fieldPath: "paths"
+    });
+  });
+});
 
 describe("validateAttachPaths", () => {
   it("rejects relative paths", async () => {

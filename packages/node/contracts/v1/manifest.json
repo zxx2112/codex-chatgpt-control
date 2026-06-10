@@ -57,6 +57,11 @@
       "schema": "commandResult"
     },
     {
+      "case": "files_preflight_success",
+      "file": "files-preflight-success.json",
+      "schema": "commandResult"
+    },
+    {
       "case": "help_root",
       "file": "help-root.json",
       "schema": "backendResponse"

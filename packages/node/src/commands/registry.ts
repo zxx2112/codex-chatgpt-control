@@ -69,9 +69,10 @@ const descriptors: CommandDescriptor[] = [
   report("redacted-run-report", "Named macro: create a redacted report for a supplied CommandResult.", [
     `await chatgpt.runPlan({ name: "redacted-run-report", input: { result } });`
   ]),
-  diagnostic("doctor", "Preflight browser bridge, login, upload, existing-tab, artifact, localization, report, and selector readiness.", [
+  diagnostic("doctor", "Preflight browser bridge, login, upload, local files, existing-tab, artifact, localization, report, and selector readiness.", [
     `await chatgpt.doctor({ check: ["bridge", "login", "upload"] });`,
     `await chatgpt.doctor({ check: ["existing_tab"], existingTab: { target: { type: "conversationId", conversationId: "<conversation-id>" }, ifMissing: "block" } });`,
+    `await chatgpt.doctor({ check: ["file_preflight"], files: ["/absolute/host/path.md"] });`,
     `await chatgpt.doctor({ check: ["localization", "reports"], report: { destDir: "/absolute/host/reports" } });`
   ]),
   report("createReport", "Write a durable redacted run report for a command result.", [
@@ -90,6 +91,7 @@ const descriptors: CommandDescriptor[] = [
   primitive("artifacts.listLatest", "Detect the latest visible generated ChatGPT artifact, such as an image-only result.", 30000),
   primitive("artifacts.wait", "Wait for a visible generated ChatGPT artifact to appear and stabilize.", 120000),
   primitive("artifacts.downloadLatest", "Download or save the latest visible generated ChatGPT artifact.", 120000),
+  primitive("files.preflight", "Validate local file paths, size limits, duplicates, zero-byte files, and extension-based MIME/category guesses without opening ChatGPT.", 30000),
   primitive("files.attach", "Attach absolute local file paths through visible ChatGPT upload controls.", 180000),
   primitive("files.downloadLatest", "Download the latest visible ChatGPT file affordance.", 120000),
   primitive("response.copy", "Click Copy response and return clipboard Markdown, with DOM fallback.", 5000),
@@ -233,7 +235,7 @@ function diagnosticArgs(name: string): Record<string, string> {
   return {
     check: "optional list of readiness checks",
     existingTab: "optional exact existing-tab policy for check: [\"existing_tab\"]",
-    files: "optional file paths for the Stage 2 file_preflight scaffold",
+    files: "optional file paths for check: [\"file_preflight\"]",
     report: "optional report output policy for check: [\"reports\"]"
   };
 }
@@ -250,6 +252,7 @@ function primitiveArgs(name: string): Record<string, string> {
   if (name === "artifacts.downloadLatest") return { destDir: "download destination directory", prefer: "download_control or visible_image_source" };
   if (name === "response.copy") return { prefer: "clipboard or dom", format: "markdown, normalized_text, visible_text, html, blocks, or all" };
   if (name.startsWith("threads.search")) return { query: "history search query" };
+  if (name === "files.preflight") return { paths: "absolute local file paths", maxBytesPerFile: "optional local per-file byte limit", maxTotalBytes: "optional local total byte limit" };
   if (name.startsWith("files.attach")) return { paths: "absolute local file paths" };
   if (name === "modes.set") {
     return {
@@ -268,6 +271,11 @@ function primitiveExamples(name: string): string[] {
       `await chatgpt.askWithFiles({ mode: { effort: "Thinking" }, files: ["/absolute/host/path.jpg"], prompt: "Describe this image.", wait: true });`
     ];
   }
+  if (name === "files.preflight") {
+    return [
+      `await chatgpt.files.preflight({ paths: ["/absolute/host/path.md"] });`
+    ];
+  }
   if (name === "files.attach") {
     return [
       `await chatgpt.files.attach({ paths: ["/absolute/host/path.jpg"] });`,
@@ -281,6 +289,7 @@ function primitiveExamples(name: string): string[] {
 }
 
 function primitiveBlockers(name: string): string[] {
+  if (name === "files.preflight") return ["not_found", "permission", "upload_failed"];
   if (name.startsWith("files.attach")) return ["browser_bridge_unavailable", "login_required", "permission", "upload_failed"];
   if (name.startsWith("files.download")) return ["browser_bridge_unavailable", "login_required", "download_unavailable"];
   if (name.startsWith("artifacts.")) return ["browser_bridge_unavailable", "login_required", "artifact_unavailable", "artifact_selector_drift", "artifact_download_unavailable"];

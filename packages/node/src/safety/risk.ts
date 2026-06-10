@@ -14,6 +14,7 @@ export const commandRisk = {
   "artifacts.listLatest": "medium",
   "artifacts.wait": "low",
   "artifacts.downloadLatest": "medium",
+  "files.preflight": "low",
   "files.attach": "medium",
   "files.downloadLatest": "medium",
   "response.copy": "medium",

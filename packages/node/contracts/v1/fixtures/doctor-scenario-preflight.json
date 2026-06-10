@@ -44,14 +44,29 @@
           "status": "blocked"
         },
         "file_preflight": {
-          "code": "file_preflight_deferred",
           "details": {
-            "fullValidation": "deferred_to_stage_3",
-            "pathCount": 1
+            "files": [
+              {
+                "bytes": 5,
+                "category": "text",
+                "extension": ".md",
+                "mimeType": "text/markdown",
+                "name": "spec.md"
+              },
+              {
+                "bytes": 11,
+                "category": "data",
+                "extension": ".json",
+                "mimeType": "application/json",
+                "name": "context.json"
+              }
+            ],
+            "pathCount": 2,
+            "totalBytes": 16,
+            "warnings": []
           },
-          "message": "File preflight is registered as a Stage 2 scaffold; full local file validation is owned by Stage 3.",
-          "nextCommand": "files.attach",
-          "status": "unsupported"
+          "message": "File preflight completed without blocking local file issues.",
+          "status": "ok"
         },
         "localization": {
           "details": {

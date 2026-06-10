@@ -478,7 +478,7 @@
       "args": {
         "check": "optional list of readiness checks",
         "existingTab": "optional exact existing-tab policy for check: [\"existing_tab\"]",
-        "files": "optional file paths for the Stage 2 file_preflight scaffold",
+        "files": "optional file paths for check: [\"file_preflight\"]",
         "report": "optional report output policy for check: [\"reports\"]"
       },
       "blockers": [
@@ -491,13 +491,14 @@
       "examples": [
         "await chatgpt.doctor({ check: [\"bridge\", \"login\", \"upload\"] });",
         "await chatgpt.doctor({ check: [\"existing_tab\"], existingTab: { target: { type: \"conversationId\", conversationId: \"<conversation-id>\" }, ifMissing: \"block\" } });",
+        "await chatgpt.doctor({ check: [\"file_preflight\"], files: [\"/absolute/host/path.md\"] });",
         "await chatgpt.doctor({ check: [\"localization\", \"reports\"], report: { destDir: \"/absolute/host/reports\" } });"
       ],
       "layer": "diagnostic",
       "name": "doctor",
       "retryPolicy": "Return structured readiness checks; retry only after the reported blocker or permission setting changes.",
       "risk": "low",
-      "summary": "Preflight browser bridge, login, upload, existing-tab, artifact, localization, report, and selector readiness."
+      "summary": "Preflight browser bridge, login, upload, local files, existing-tab, artifact, localization, report, and selector readiness."
     },
     {
       "args": {
@@ -775,6 +776,28 @@
       "retryPolicy": "Return structured CommandResult failures; retry only when the blocker is recoverable and no duplicate prompt will be submitted.",
       "risk": "medium",
       "summary": "Download or save the latest visible generated ChatGPT artifact."
+    },
+    {
+      "args": {
+        "maxBytesPerFile": "optional local per-file byte limit",
+        "maxTotalBytes": "optional local total byte limit",
+        "paths": "absolute local file paths"
+      },
+      "blockers": [
+        "not_found",
+        "permission",
+        "upload_failed"
+      ],
+      "defaults": {},
+      "defaultTimeoutMs": 30000,
+      "examples": [
+        "await chatgpt.files.preflight({ paths: [\"/absolute/host/path.md\"] });"
+      ],
+      "layer": "primitive",
+      "name": "files.preflight",
+      "retryPolicy": "Return structured CommandResult failures; retry only when the blocker is recoverable and no duplicate prompt will be submitted.",
+      "risk": "low",
+      "summary": "Validate local file paths, size limits, duplicates, zero-byte files, and extension-based MIME/category guesses without opening ChatGPT."
     },
     {
       "args": {

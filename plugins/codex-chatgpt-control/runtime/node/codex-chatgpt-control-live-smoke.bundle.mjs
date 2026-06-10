@@ -155,7 +155,7 @@ async function runLiveSmoke(context, scenarios) {
 async function writeReport(reportDir, results) {
   await mkdir(reportDir, { recursive: true });
   const stamp = (/* @__PURE__ */ new Date()).toISOString().replaceAll(":", "-").replaceAll(".", "-");
-  const path2 = join(reportDir, `${stamp}-live-smoke.json`);
+  const path3 = join(reportDir, `${stamp}-live-smoke.json`);
   const summary = {
     total: results.length,
     passed: results.filter((result) => result.status === "pass").length,
@@ -163,9 +163,9 @@ async function writeReport(reportDir, results) {
     skipped: results.filter((result) => result.status === "skip").length,
     requiredFailures: requiredFailures(results).map((result) => result.name)
   };
-  await writeFile(path2, `${JSON.stringify({ summary, results: results.map(redactLiveSmokeResult) }, null, 2)}
+  await writeFile(path3, `${JSON.stringify({ summary, results: results.map(redactLiveSmokeResult) }, null, 2)}
 `, "utf8");
-  return path2;
+  return path3;
 }
 function redactLiveSmokeResult(result) {
   const redacted = redactReportValue(result, { includeContent: false });
@@ -3754,11 +3754,11 @@ function normalizePromptForIntegrity(prompt) {
 function sha256Text(text) {
   return createHash("sha256").update(text).digest("hex");
 }
-async function sha256File(path2) {
+async function sha256File(path3) {
   const hash = createHash("sha256");
   let bytes = 0;
   await new Promise((resolve3, reject) => {
-    const stream = createReadStream(path2);
+    const stream = createReadStream(path3);
     stream.on("data", (chunk) => {
       bytes += typeof chunk === "string" ? Buffer.byteLength(chunk) : chunk.byteLength;
       hash.update(chunk);
@@ -3767,36 +3767,36 @@ async function sha256File(path2) {
     stream.on("end", resolve3);
   });
   return {
-    path: path2,
+    path: path3,
     bytes,
     sha256: hash.digest("hex")
   };
 }
-async function writeJsonArtifactWithIntegrity(path2, value, options) {
+async function writeJsonArtifactWithIntegrity(path3, value, options) {
   const payload = `${JSON.stringify(value, null, 2)}
 `;
-  await writeFileAtomicNoOverwrite(path2, payload);
+  await writeFileAtomicNoOverwrite(path3, payload);
   try {
-    const saved = await stat(path2);
-    const sidecar = await buildIntegritySidecar(path2, payload, options);
-    const metaPath = `${path2}.meta.json`;
+    const saved = await stat(path3);
+    const sidecar = await buildIntegritySidecar(path3, payload, options);
+    const metaPath = `${path3}.meta.json`;
     await writeFileAtomicNoOverwrite(metaPath, `${JSON.stringify(sidecar, null, 2)}
 `);
-    return { path: path2, bytes: saved.size, metaPath, sidecar };
+    return { path: path3, bytes: saved.size, metaPath, sidecar };
   } catch (error) {
-    await unlinkIfExists(path2);
+    await unlinkIfExists(path3);
     throw error;
   }
 }
-async function writeFileAtomicNoOverwrite(path2, payload) {
-  await mkdir2(dirname(path2), { recursive: true });
-  const tempPath = `${path2}.tmp-${Date.now()}-${randomUUID()}`;
+async function writeFileAtomicNoOverwrite(path3, payload) {
+  await mkdir2(dirname(path3), { recursive: true });
+  const tempPath = `${path3}.tmp-${Date.now()}-${randomUUID()}`;
   try {
     await writeFile2(tempPath, payload, { encoding: "utf8", flag: "wx" });
-    await link(tempPath, path2);
+    await link(tempPath, path3);
   } catch (error) {
     if (isFileExistsError(error)) {
-      throw new Error(`Artifact already exists at ${path2}; refusing to overwrite.`);
+      throw new Error(`Artifact already exists at ${path3}; refusing to overwrite.`);
     }
     throw error;
   } finally {
@@ -3834,9 +3834,9 @@ async function buildIntegritySidecar(targetPath, payload, options) {
   sidecar.inputs = await Promise.all(uniqueInputs.map((inputPath) => sha256File(inputPath)));
   return sidecar;
 }
-async function unlinkIfExists(path2) {
+async function unlinkIfExists(path3) {
   try {
-    await unlink(path2);
+    await unlink(path3);
   } catch (error) {
     if (!isNotFoundError(error)) throw error;
   }
@@ -5067,13 +5067,13 @@ async function saveLatestVisibleImageSource(page, destDir, timeoutMs) {
   const absoluteDest = resolve2(destDir);
   await mkdir4(absoluteDest, { recursive: true });
   const suggestedFilename = `generated-image-${Date.now()}.${extensionForMime(parsed.mimeType)}`;
-  const path2 = join3(absoluteDest, suggestedFilename);
-  await writeFile3(path2, parsed.bytes);
-  const saved = await stat3(path2);
+  const path3 = join3(absoluteDest, suggestedFilename);
+  await writeFile3(path3, parsed.bytes);
+  const saved = await stat3(path3);
   if (saved.size <= 0) {
-    throw new Error(`Generated image artifact file is empty: ${path2}`);
+    throw new Error(`Generated image artifact file is empty: ${path3}`);
   }
-  return { path: path2, suggestedFilename, bytes: saved.size };
+  return { path: path3, suggestedFilename, bytes: saved.size };
 }
 async function listPageArtifactsWithBridgeFallback(env, page, args) {
   try {
@@ -5136,13 +5136,13 @@ async function saveLatestPageAssetImageFromPage(page, destDir, timeoutMs) {
   const absoluteDest = resolve2(destDir);
   await mkdir4(absoluteDest, { recursive: true });
   const suggestedFilename = `generated-image-${Date.now()}.${extensionForMime(asset.contentType ?? "image/png")}`;
-  const path2 = join3(absoluteDest, suggestedFilename);
-  await copyFile(asset.path, path2);
-  const saved = await stat3(path2);
+  const path3 = join3(absoluteDest, suggestedFilename);
+  await copyFile(asset.path, path3);
+  const saved = await stat3(path3);
   if (saved.size <= 0) {
-    throw new Error(`Generated image artifact file is empty: ${path2}`);
+    throw new Error(`Generated image artifact file is empty: ${path3}`);
   }
-  return { path: path2, suggestedFilename, bytes: saved.size };
+  return { path: path3, suggestedFilename, bytes: saved.size };
 }
 async function readPageAssetsInventory(page, timeoutMs) {
   const capability2 = await getPageAssetsCapability(page);
@@ -5315,6 +5315,7 @@ async function sleep2(page, ms2) {
 // src/commands/files.ts
 import { access, readFile as readFile2, stat as stat4 } from "node:fs/promises";
 import { constants } from "node:fs";
+import path2 from "node:path";
 
 // src/platform/local-paths.ts
 import path from "node:path";
@@ -5339,31 +5340,117 @@ function isFullyQualifiedWindowsPath(value) {
 // src/commands/files.ts
 var CODEX_UPLOAD_PERMISSION_FIX = "Codex Settings > Computer Use > Chrome > Permissions > Uploads: set to Always allow, or add chatgpt.com to the allowed upload domains.";
 var CHROME_FILE_URL_PERMISSION_FIX = "Chrome chrome://extensions > Codex extension > Details: enable Allow access to file URLs.";
-async function validateAttachPaths(paths) {
+var DEFAULT_MAX_BYTES_PER_FILE = 512 * 1024 * 1024;
+var DEFAULT_MAX_TOTAL_BYTES = 2 * 1024 * 1024 * 1024;
+async function preflightFiles(env, args) {
+  const maxBytesPerFile = args.maxBytesPerFile ?? DEFAULT_MAX_BYTES_PER_FILE;
+  const maxTotalBytes = args.maxTotalBytes ?? DEFAULT_MAX_TOTAL_BYTES;
   const files = [];
-  for (const path2 of paths) {
-    const absolute = resolveForHostPath(path2);
-    await access(absolute, constants.R_OK);
-    const fileStat = await stat4(absolute);
-    if (!fileStat.isFile()) {
-      throw new Error(`Attachment path is not a file: ${absolute}`);
+  const warnings = [];
+  for (const [index, inputPath] of args.paths.entries()) {
+    const fieldPath = `paths[${index}]`;
+    if (!isHostAbsolutePath(inputPath)) {
+      return filePreflightBlocker({
+        env,
+        status: "blocked",
+        kind: "upload_failed",
+        code: "file_path_not_absolute",
+        fieldPath,
+        message: `File attachment path must be absolute for the backend host: ${inputPath}`
+      });
     }
-    files.push({
-      path: absolute,
-      name: basenameForHostPath(absolute),
-      bytes: fileStat.size
+    const absolute = resolveForHostPath(inputPath);
+    let fileStat;
+    try {
+      fileStat = await stat4(absolute);
+    } catch (error) {
+      if (isNodeError2(error) && error.code === "ENOENT") {
+        return filePreflightBlocker({
+          env,
+          status: "not_found",
+          kind: "not_found",
+          code: "file_missing",
+          fieldPath,
+          message: `File attachment path does not exist: ${absolute}`
+        });
+      }
+      if (isNodeError2(error) && (error.code === "EACCES" || error.code === "EPERM")) {
+        return filePreflightBlocker({
+          env,
+          status: "blocked",
+          kind: "permission",
+          code: "file_not_readable",
+          fieldPath,
+          message: `File attachment path is not readable: ${absolute}`
+        });
+      }
+      return resultError(error instanceof Error ? error : new Error(String(error)), filePreflightContext(env));
+    }
+    if (!fileStat.isFile()) {
+      return filePreflightBlocker({
+        env,
+        status: "blocked",
+        kind: "upload_failed",
+        code: fileStat.isDirectory() ? "file_path_is_directory" : "file_path_not_file",
+        fieldPath,
+        message: `File attachment path is not a file: ${absolute}`
+      });
+    }
+    try {
+      await access(absolute, constants.R_OK);
+    } catch (error) {
+      return filePreflightBlocker({
+        env,
+        status: "blocked",
+        kind: "permission",
+        code: "file_not_readable",
+        fieldPath,
+        message: `File attachment path is not readable: ${absolute}`
+      });
+    }
+    if (fileStat.size > maxBytesPerFile) {
+      return filePreflightBlocker({
+        env,
+        status: "blocked",
+        kind: "upload_failed",
+        code: "file_too_large",
+        fieldPath,
+        message: `File attachment exceeds the configured per-file preflight limit: ${absolute} (${fileStat.size}/${maxBytesPerFile} bytes)`
+      });
+    }
+    const metadata = fileMetadata(absolute, fileStat.size);
+    files.push(metadata);
+  }
+  const totalBytes = files.reduce((sum, file) => sum + file.bytes, 0);
+  if (totalBytes > maxTotalBytes) {
+    return filePreflightBlocker({
+      env,
+      status: "blocked",
+      kind: "upload_failed",
+      code: "file_total_bytes_exceeded",
+      fieldPath: "paths",
+      message: `File attachments exceed the configured total preflight limit: ${totalBytes}/${maxTotalBytes} bytes`
     });
   }
-  return files;
+  collectFilePreflightWarnings(files, warnings);
+  return resultOk({ files, totalBytes }, filePreflightContext(env), warnings);
 }
 async function attachFiles(env, args) {
+  const preflight = await preflightFiles(env, { paths: args.paths });
+  if (!preflight.ok || preflight.data === void 0) {
+    return preflight;
+  }
   const boot2 = await ensurePage4(env);
   if (!boot2.ok) {
     return boot2;
   }
   const page = env.page;
   try {
-    const files = await validateAttachPaths(args.paths);
+    const files = preflight.data.files.map((file) => ({
+      path: file.path,
+      name: file.name,
+      bytes: file.bytes
+    }));
     await uploadFiles(page, files, args.timeoutMs ?? 3e4);
     await page.waitForTimeout?.(args.timeoutMs === void 0 ? 1e3 : Math.min(args.timeoutMs, 3e3));
     const readiness = await waitForAttachedFilesReady(page, files, args.timeoutMs ?? 3e4);
@@ -5397,7 +5484,7 @@ async function attachFiles(env, args) {
         context: await contextFromPage(page)
       };
     }
-    return resultOk({ files }, await contextFromPage(page));
+    return resultOk({ files }, await contextFromPage(page), preflight.warnings);
   } catch (error) {
     if (isUploadBridgeBlocker(error)) {
       return {
@@ -5417,6 +5504,115 @@ async function attachFiles(env, args) {
     }
     return resultError(error instanceof Error ? error : new Error(String(error)), await contextFromPage(page));
   }
+}
+function filePreflightBlocker(args) {
+  return {
+    ok: false,
+    status: args.status,
+    warnings: [],
+    blocker: {
+      kind: args.kind,
+      code: args.code,
+      fieldPath: args.fieldPath,
+      message: args.message,
+      resumable: true
+    },
+    context: filePreflightContext(args.env)
+  };
+}
+function filePreflightContext(env) {
+  return { timestamp: (env.now?.() ?? /* @__PURE__ */ new Date()).toISOString() };
+}
+function fileMetadata(absolute, bytes) {
+  const extension = extensionForHostPath(absolute);
+  const { mimeType, category } = guessFileType(extension);
+  return {
+    path: absolute,
+    name: basenameForHostPath(absolute),
+    bytes,
+    extension,
+    mimeType,
+    category
+  };
+}
+function extensionForHostPath(value) {
+  return process.platform === "win32" ? path2.win32.extname(value).toLowerCase() : path2.posix.extname(value).toLowerCase();
+}
+function collectFilePreflightWarnings(files, warnings) {
+  const byPath = /* @__PURE__ */ new Map();
+  const byName = /* @__PURE__ */ new Map();
+  for (const file of files) {
+    if (file.bytes === 0) {
+      warnings.push(`Zero-byte file will be attached if ChatGPT accepts it: ${file.name}`);
+    }
+    const pathCount = (byPath.get(file.path) ?? 0) + 1;
+    byPath.set(file.path, pathCount);
+    if (pathCount === 2) {
+      warnings.push(`Duplicate resolved file path requested: ${file.path}`);
+    }
+    const normalizedName = file.name.toLocaleLowerCase();
+    const nameCount = (byName.get(normalizedName) ?? 0) + 1;
+    byName.set(normalizedName, nameCount);
+    if (nameCount === 2) {
+      warnings.push(`Duplicate file basename requested: ${file.name}`);
+    }
+  }
+}
+function guessFileType(extension) {
+  switch (extension) {
+    case ".txt":
+      return { mimeType: "text/plain", category: "text" };
+    case ".md":
+    case ".markdown":
+      return { mimeType: "text/markdown", category: "text" };
+    case ".csv":
+      return { mimeType: "text/csv", category: "spreadsheet" };
+    case ".tsv":
+      return { mimeType: "text/tab-separated-values", category: "spreadsheet" };
+    case ".json":
+      return { mimeType: "application/json", category: "data" };
+    case ".jsonl":
+    case ".ndjson":
+      return { mimeType: "application/x-ndjson", category: "data" };
+    case ".pdf":
+      return { mimeType: "application/pdf", category: "document" };
+    case ".doc":
+      return { mimeType: "application/msword", category: "document" };
+    case ".docx":
+      return { mimeType: "application/vnd.openxmlformats-officedocument.wordprocessingml.document", category: "document" };
+    case ".xls":
+      return { mimeType: "application/vnd.ms-excel", category: "spreadsheet" };
+    case ".xlsx":
+      return { mimeType: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", category: "spreadsheet" };
+    case ".png":
+      return { mimeType: "image/png", category: "image" };
+    case ".jpg":
+    case ".jpeg":
+      return { mimeType: "image/jpeg", category: "image" };
+    case ".gif":
+      return { mimeType: "image/gif", category: "image" };
+    case ".webp":
+      return { mimeType: "image/webp", category: "image" };
+    case ".svg":
+      return { mimeType: "image/svg+xml", category: "image" };
+    case ".mp3":
+      return { mimeType: "audio/mpeg", category: "audio" };
+    case ".wav":
+      return { mimeType: "audio/wav", category: "audio" };
+    case ".mp4":
+      return { mimeType: "video/mp4", category: "video" };
+    case ".mov":
+      return { mimeType: "video/quicktime", category: "video" };
+    case ".zip":
+      return { mimeType: "application/zip", category: "archive" };
+    case ".gz":
+      return { mimeType: "application/gzip", category: "archive" };
+    default:
+      return { mimeType: guessMimeType(extension), category: "unknown" };
+  }
+}
+function isNodeError2(error) {
+  return error instanceof Error && "code" in error;
 }
 async function waitForAttachedFilesReady(page, files, timeoutMs) {
   const started = Date.now();
@@ -6297,14 +6493,14 @@ function resolveVariableReference(reference, previousResults, input = {}) {
   if (match === null) {
     return reference;
   }
-  const path2 = match[1];
-  if (path2 === void 0 || path2.length === 0) {
+  const path3 = match[1];
+  if (path3 === void 0 || path3.length === 0) {
     throw new Error("Empty variable reference is not allowed.");
   }
-  if (path2.includes("__proto__") || path2.includes("prototype") || path2.includes("constructor")) {
-    throw new Error(`Unsafe variable reference rejected: ${path2}`);
+  if (path3.includes("__proto__") || path3.includes("prototype") || path3.includes("constructor")) {
+    throw new Error(`Unsafe variable reference rejected: ${path3}`);
   }
-  const [root, ...segments] = tokenizePath(path2);
+  const [root, ...segments] = tokenizePath(path3);
   let current;
   if (root === "input") {
     current = input;
@@ -6332,9 +6528,9 @@ function resolveValue(value, previousResults, input) {
   }
   return value;
 }
-function tokenizePath(path2) {
+function tokenizePath(path3) {
   const segments = [];
-  for (const part of path2.split(".")) {
+  for (const part of path3.split(".")) {
     const head = /^([A-Za-z_][A-Za-z0-9_]*)/.exec(part)?.[1];
     if (head === void 0) {
       throw new Error(`Invalid variable path segment: ${part}`);
@@ -6565,7 +6761,7 @@ async function doctor(env, args = {}) {
         checks.artifacts = artifactsCheck(env);
         break;
       case "file_preflight":
-        checks.file_preflight = filePreflightCheck(args);
+        checks.file_preflight = await filePreflightCheck(env, args);
         break;
       case "localization":
         checks.localization = localizationCheck(env);
@@ -6688,16 +6884,38 @@ function artifactsCheck(env) {
   }
   return unknown("Artifact primitives need selector support plus download, DOM, or page-assets support to prove readiness.", void 0, details);
 }
-function filePreflightCheck(args) {
-  return unsupported(
-    "File preflight is registered as a Stage 2 scaffold; full local file validation is owned by Stage 3.",
-    void 0,
-    {
-      pathCount: args.files?.length ?? 0,
-      fullValidation: "deferred_to_stage_3"
-    },
-    "files.attach",
-    "file_preflight_deferred"
+async function filePreflightCheck(env, args) {
+  const paths = args.files ?? [];
+  const result = await preflightFiles(env, { paths });
+  const pathCount = paths.length;
+  if (result.ok && result.data !== void 0) {
+    return ok(
+      pathCount === 0 ? "No file paths were supplied; file preflight has no local files to validate." : "File preflight completed without blocking local file issues.",
+      {
+        pathCount,
+        totalBytes: result.data.totalBytes,
+        warnings: result.warnings,
+        files: result.data.files.map((file) => ({
+          name: file.name,
+          bytes: file.bytes,
+          extension: file.extension,
+          mimeType: file.mimeType,
+          category: file.category
+        }))
+      }
+    );
+  }
+  return withBlockerDetails(
+    blocked(
+      result.blocker?.message ?? result.error?.message ?? "File preflight failed.",
+      result.blocker?.remediation?.map((step) => `${step.label}: ${step.instruction}`),
+      {
+        pathCount,
+        warnings: result.warnings
+      }
+    ),
+    result,
+    "files.preflight"
   );
 }
 function localizationCheck(env) {
@@ -6745,13 +6963,13 @@ async function reportsCheck(options) {
       details
     );
   } catch (error) {
-    if (isNodeError2(error) && error.code === "ENOENT") {
+    if (isNodeError3(error) && error.code === "ENOENT") {
       return unknown("Report destination does not exist yet; createReport will create it when a report is written.", void 0, {
         ...details,
         exists: false
       }, "createReport");
     }
-    if (isNodeError2(error) && (error.code === "EACCES" || error.code === "EPERM")) {
+    if (isNodeError3(error) && (error.code === "EACCES" || error.code === "EPERM")) {
       return blocked("Report destination is not writable.", ["Choose a writable report destDir or update filesystem permissions."], details, "permission");
     }
     return unknown(`Report destination writability could not be proven: ${error instanceof Error ? error.message : String(error)}`, void 0, details);
@@ -6811,7 +7029,7 @@ function capability(status, message, remediation, details, nextCommand, blockerK
   if (code !== void 0) check.code = code;
   return check;
 }
-function isNodeError2(error) {
+function isNodeError3(error) {
   return error instanceof Error && "code" in error;
 }
 
@@ -6824,7 +7042,7 @@ async function createRunReport(env, result, options = {}) {
     const createdAt = now.toISOString();
     const stamp = createdAt.replaceAll(":", "-").replaceAll(".", "-");
     const safeBase = sanitizeBasename(options.basename ?? "chatgpt-run-report");
-    const path2 = join4(destDir, `${stamp}-${safeBase}.json`);
+    const path3 = join4(destDir, `${stamp}-${safeBase}.json`);
     const includeContent = options.includeContent === true;
     const summary = redactReportValue({
       ok: result.ok,
@@ -6849,15 +7067,15 @@ async function createRunReport(env, result, options = {}) {
     if (options.integrity === false) {
       const payload = `${JSON.stringify(report2, null, 2)}
 `;
-      await writeFileAtomicNoOverwrite(path2, payload);
-      return resultOk({ path: path2, bytes: Buffer.byteLength(payload, "utf8"), includeContent }, await contextFromPage(env.page));
+      await writeFileAtomicNoOverwrite(path3, payload);
+      return resultOk({ path: path3, bytes: Buffer.byteLength(payload, "utf8"), includeContent }, await contextFromPage(env.page));
     }
     const integrity = integrityOptions(result, options.integrity);
     const writeOptions = { createdAt };
     if (integrity.prompt !== void 0) writeOptions.prompt = integrity.prompt;
     if (integrity.outputText !== void 0) writeOptions.outputText = integrity.outputText;
     if (integrity.inputPaths !== void 0) writeOptions.inputPaths = integrity.inputPaths;
-    const saved = await writeJsonArtifactWithIntegrity(path2, report2, writeOptions);
+    const saved = await writeJsonArtifactWithIntegrity(path3, report2, writeOptions);
     const reportIntegrity = {
       schemaVersion: saved.sidecar.schemaVersion,
       target: saved.sidecar.target,
@@ -6866,7 +7084,7 @@ async function createRunReport(env, result, options = {}) {
     if (saved.sidecar.prompt !== void 0) reportIntegrity.prompt = saved.sidecar.prompt;
     if (saved.sidecar.output !== void 0) reportIntegrity.output = saved.sidecar.output;
     return resultOk({
-      path: path2,
+      path: path3,
       bytes: saved.bytes,
       includeContent,
       metaPath: saved.metaPath,
@@ -6936,6 +7154,7 @@ var commandRisk = {
   "artifacts.listLatest": "medium",
   "artifacts.wait": "low",
   "artifacts.downloadLatest": "medium",
+  "files.preflight": "low",
   "files.attach": "medium",
   "files.downloadLatest": "medium",
   "response.copy": "medium",
@@ -7006,9 +7225,10 @@ var descriptors = [
   report("redacted-run-report", "Named macro: create a redacted report for a supplied CommandResult.", [
     `await chatgpt.runPlan({ name: "redacted-run-report", input: { result } });`
   ]),
-  diagnostic("doctor", "Preflight browser bridge, login, upload, existing-tab, artifact, localization, report, and selector readiness.", [
+  diagnostic("doctor", "Preflight browser bridge, login, upload, local files, existing-tab, artifact, localization, report, and selector readiness.", [
     `await chatgpt.doctor({ check: ["bridge", "login", "upload"] });`,
     `await chatgpt.doctor({ check: ["existing_tab"], existingTab: { target: { type: "conversationId", conversationId: "<conversation-id>" }, ifMissing: "block" } });`,
+    `await chatgpt.doctor({ check: ["file_preflight"], files: ["/absolute/host/path.md"] });`,
     `await chatgpt.doctor({ check: ["localization", "reports"], report: { destDir: "/absolute/host/reports" } });`
   ]),
   report("createReport", "Write a durable redacted run report for a command result.", [
@@ -7027,6 +7247,7 @@ var descriptors = [
   primitive("artifacts.listLatest", "Detect the latest visible generated ChatGPT artifact, such as an image-only result.", 3e4),
   primitive("artifacts.wait", "Wait for a visible generated ChatGPT artifact to appear and stabilize.", 12e4),
   primitive("artifacts.downloadLatest", "Download or save the latest visible generated ChatGPT artifact.", 12e4),
+  primitive("files.preflight", "Validate local file paths, size limits, duplicates, zero-byte files, and extension-based MIME/category guesses without opening ChatGPT.", 3e4),
   primitive("files.attach", "Attach absolute local file paths through visible ChatGPT upload controls.", 18e4),
   primitive("files.downloadLatest", "Download the latest visible ChatGPT file affordance.", 12e4),
   primitive("response.copy", "Click Copy response and return clipboard Markdown, with DOM fallback.", 5e3),
@@ -7158,7 +7379,7 @@ function diagnosticArgs(name) {
   return {
     check: "optional list of readiness checks",
     existingTab: 'optional exact existing-tab policy for check: ["existing_tab"]',
-    files: "optional file paths for the Stage 2 file_preflight scaffold",
+    files: 'optional file paths for check: ["file_preflight"]',
     report: 'optional report output policy for check: ["reports"]'
   };
 }
@@ -7173,6 +7394,7 @@ function primitiveArgs(name) {
   if (name === "artifacts.downloadLatest") return { destDir: "download destination directory", prefer: "download_control or visible_image_source" };
   if (name === "response.copy") return { prefer: "clipboard or dom", format: "markdown, normalized_text, visible_text, html, blocks, or all" };
   if (name.startsWith("threads.search")) return { query: "history search query" };
+  if (name === "files.preflight") return { paths: "absolute local file paths", maxBytesPerFile: "optional local per-file byte limit", maxTotalBytes: "optional local total byte limit" };
   if (name.startsWith("files.attach")) return { paths: "absolute local file paths" };
   if (name === "modes.set") {
     return {
@@ -7190,6 +7412,11 @@ function primitiveExamples(name) {
       `await chatgpt.askWithFiles({ mode: { effort: "Thinking" }, files: ["/absolute/host/path.jpg"], prompt: "Describe this image.", wait: true });`
     ];
   }
+  if (name === "files.preflight") {
+    return [
+      `await chatgpt.files.preflight({ paths: ["/absolute/host/path.md"] });`
+    ];
+  }
   if (name === "files.attach") {
     return [
       `await chatgpt.files.attach({ paths: ["/absolute/host/path.jpg"] });`,
@@ -7202,6 +7429,7 @@ function primitiveExamples(name) {
   return [];
 }
 function primitiveBlockers(name) {
+  if (name === "files.preflight") return ["not_found", "permission", "upload_failed"];
   if (name.startsWith("files.attach")) return ["browser_bridge_unavailable", "login_required", "permission", "upload_failed"];
   if (name.startsWith("files.download")) return ["browser_bridge_unavailable", "login_required", "download_unavailable"];
   if (name.startsWith("artifacts.")) return ["browser_bridge_unavailable", "login_required", "artifact_unavailable", "artifact_selector_drift", "artifact_download_unavailable"];
@@ -7473,15 +7701,15 @@ var responseFormats = /* @__PURE__ */ new Set([
 ]);
 function validateResponsesCreateArgs(args) {
   const unsupported2 = [];
-  for (const [path2, alternative] of Object.entries(unsupportedAlternatives)) {
-    if (args[path2] !== void 0) {
-      unsupported2.push(apiOnlyField(path2, alternative));
+  for (const [path3, alternative] of Object.entries(unsupportedAlternatives)) {
+    if (args[path3] !== void 0) {
+      unsupported2.push(apiOnlyField(path3, alternative));
     }
   }
-  for (const path2 of Object.keys(args)) {
-    if (!acceptedTopLevelFields.has(path2) && unsupportedAlternatives[path2] === void 0) {
+  for (const path3 of Object.keys(args)) {
+    if (!acceptedTopLevelFields.has(path3) && unsupportedAlternatives[path3] === void 0) {
       unsupported2.push({
-        path: path2,
+        path: path3,
         reason: "This field is not part of the narrow ChatGPT browser-control Responses adapter.",
         alternative: "Use chatgpt.runner.run(...) for lower-level browser-control options."
       });
@@ -7524,10 +7752,10 @@ function validateResponsesCreateArgs(args) {
         alternative: "Use markdown, visible_text, normalized_text, html, blocks, or all."
       });
     }
-    for (const path2 of Object.keys(args.text)) {
-      if (path2 !== "format") {
+    for (const path3 of Object.keys(args.text)) {
+      if (path3 !== "format") {
         unsupported2.push({
-          path: `text.${path2}`,
+          path: `text.${path3}`,
           reason: "Only text.format is supported by the narrow Responses adapter.",
           alternative: "Use chatgpt.runner.run(...) for lower-level browser-control options."
         });
@@ -7598,9 +7826,9 @@ function unsupportedResponse(unsupported2, now = /* @__PURE__ */ new Date()) {
     }
   };
 }
-function apiOnlyField(path2, alternative) {
+function apiOnlyField(path3, alternative) {
   return {
-    path: path2,
+    path: path3,
     reason: "This is an OpenAI API field that visible ChatGPT browser control cannot honestly support.",
     alternative
   };
@@ -7738,6 +7966,7 @@ function createChatGPT(options = {}) {
       waitAndRead: (args) => waitAndRead(env, args)
     },
     files: {
+      preflight: (args) => preflightFiles(env, args),
       attach: (args) => attachFiles(env, args),
       downloadLatest: (args) => downloadLatestFile(env, args)
     },
@@ -7760,6 +7989,8 @@ function createChatGPT(options = {}) {
 async function runGuarded(plan, env, limits, report2) {
   const budget = checkRunBudget(plan, limits);
   if (budget !== void 0) return budget;
+  const filePreflight = await preflightPlanFiles(plan, env);
+  if (filePreflight !== void 0) return filePreflight;
   const result = await runSequence(plan, env);
   if (report2 === void 0 || report2.enabled === false) return result;
   const reportResult = await createRunReport(env, result, capReportOptions(report2, limits));
@@ -7802,6 +8033,16 @@ async function runGuarded(plan, env, limits, report2) {
       `Run report creation failed: ${reportResult.error?.message ?? reportResult.blocker?.message ?? reportResult.status}`
     ]
   };
+}
+async function preflightPlanFiles(plan, env) {
+  const paths = plan.steps.flatMap((step) => step.command === "files.attach" ? pathsFromAttachStep(step) : []);
+  if (paths.length === 0) return void 0;
+  const result = await preflightFiles(env, { paths });
+  return result.ok ? void 0 : result;
+}
+function pathsFromAttachStep(step) {
+  const paths = step.args.paths;
+  return paths.every((item) => typeof item === "string") ? paths : [];
 }
 function normalizeLimits(limits) {
   return {
@@ -8460,9 +8701,9 @@ var requiredScenarios = [
       context: { timestamp: meta.startedAt, url: "https://chatgpt.com/c/redacted-smoke" }
     };
     const result = await chatgpt.createReport(command, { destDir: context.reportDir, basename: "redacted-run-report" });
-    const path2 = result.data?.path;
-    const body = path2 === void 0 ? "" : await readFile3(path2, "utf8").catch(() => "");
-    return result.ok && body.includes("[redacted:") && !body.includes("private@example.com") && !body.includes("/example/user/private") ? pass(meta, result, { path: path2 }) : fail(meta, result, { path: path2, bodyPreview: body.slice(0, 500) });
+    const path3 = result.data?.path;
+    const body = path3 === void 0 ? "" : await readFile3(path3, "utf8").catch(() => "");
+    return result.ok && body.includes("[redacted:") && !body.includes("private@example.com") && !body.includes("/example/user/private") ? pass(meta, result, { path: path3 }) : fail(meta, result, { path: path3, bodyPreview: body.slice(0, 500) });
   }),
   scenario("runner-new-ask-read", true, () => true, async (context, meta) => {
     const chatgpt = createChatGPT(clientOptionsFor(context));
@@ -8553,9 +8794,9 @@ var requiredScenarios = [
       response: { format: "normalized_text" },
       report: { enabled: true, destDir: context.reportDir, basename: "runner-report-redacted", includeContent: false }
     });
-    const path2 = result.data?.reportPath ?? result.reportPath;
-    const body = path2 === void 0 ? "" : await readFile3(path2, "utf8").catch(() => "");
-    return result.ok && path2 !== void 0 && body.includes("[redacted:") && !body.includes(secret) ? pass(meta, result, { path: path2 }) : fail(meta, result, { path: path2, bodyPreview: body.slice(0, 500), output: result.output_text });
+    const path3 = result.data?.reportPath ?? result.reportPath;
+    const body = path3 === void 0 ? "" : await readFile3(path3, "utf8").catch(() => "");
+    return result.ok && path3 !== void 0 && body.includes("[redacted:") && !body.includes(secret) ? pass(meta, result, { path: path3 }) : fail(meta, result, { path: path3, bodyPreview: body.slice(0, 500), output: result.output_text });
   }),
   scenario("runner-mode-unavailable", true, () => true, async (context, meta) => {
     const chatgpt = createChatGPT(clientOptionsFor(context));
@@ -8730,9 +8971,9 @@ var optionalScenarios = [
     });
     if (!asked.ok) return fail(meta, asked);
     const result = await downloadLatestAttachment({ destDir: context.reportDir, timeoutMs: 12e4 }, env);
-    const path2 = typeof result.data === "object" && result.data !== null ? result.data.path : void 0;
-    const bytes = path2 === void 0 ? 0 : (await stat6(path2).catch(() => void 0))?.size ?? 0;
-    return result.ok && bytes > 0 ? pass(meta, result, { path: path2, bytes }) : fail(meta, result, { path: path2, bytes });
+    const path3 = typeof result.data === "object" && result.data !== null ? result.data.path : void 0;
+    const bytes = path3 === void 0 ? 0 : (await stat6(path3).catch(() => void 0))?.size ?? 0;
+    return result.ok && bytes > 0 ? pass(meta, result, { path: path3, bytes }) : fail(meta, result, { path: path3, bytes });
   }),
   scenario("set-mode-visible", false, (context) => contextEnvText(context, "CHATGPT_E2E_MODE_LABEL") !== void 0, async (context, meta) => {
     const label = requireInput(contextEnvText(context, "CHATGPT_E2E_MODE_LABEL"), "CHATGPT_E2E_MODE_LABEL");

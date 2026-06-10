@@ -41,6 +41,7 @@ export const backendCommands = [
   "artifacts.listLatest",
   "artifacts.wait",
   "artifacts.downloadLatest",
+  "files.preflight",
   "files.attach",
   "files.downloadLatest",
   "modes.set",

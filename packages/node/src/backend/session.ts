@@ -186,6 +186,8 @@ async function dispatchBackendCommand(client: ChatGPTClient, request: BackendReq
       return client.artifacts.wait(emptyToUndefined(payload) as ArtifactWaitArgs | undefined);
     case "artifacts.downloadLatest":
       return client.artifacts.downloadLatest(payload as ArtifactDownloadArgs);
+    case "files.preflight":
+      return client.files.preflight(payload as Parameters<ChatGPTClient["files"]["preflight"]>[0]);
     case "files.attach":
       return client.files.attach(payload as Parameters<ChatGPTClient["files"]["attach"]>[0]);
     case "files.downloadLatest":

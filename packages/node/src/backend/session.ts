@@ -192,6 +192,12 @@ async function dispatchBackendCommand(client: ChatGPTClient, request: BackendReq
       return client.files.attach(payload as Parameters<ChatGPTClient["files"]["attach"]>[0]);
     case "files.downloadLatest":
       return client.files.downloadLatest(payload as Parameters<ChatGPTClient["files"]["downloadLatest"]>[0]);
+    case "projects.sources.list":
+      return client.projects.sources.list(payload as Parameters<ChatGPTClient["projects"]["sources"]["list"]>[0]);
+    case "projects.sources.planAdd":
+      return client.projects.sources.planAdd(payload as Parameters<ChatGPTClient["projects"]["sources"]["planAdd"]>[0]);
+    case "projects.sources.add":
+      return client.projects.sources.add(payload as Parameters<ChatGPTClient["projects"]["sources"]["add"]>[0]);
     case "modes.set":
       return client.modes.set(payload as Parameters<ChatGPTClient["modes"]["set"]>[0]);
     case "tools.select":

@@ -94,6 +94,9 @@ const descriptors: CommandDescriptor[] = [
   primitive("files.preflight", "Validate local file paths, size limits, duplicates, zero-byte files, and extension-based MIME/category guesses without opening ChatGPT.", 30000),
   primitive("files.attach", "Attach absolute local file paths through visible ChatGPT upload controls.", 180000),
   primitive("files.downloadLatest", "Download the latest visible ChatGPT file affordance.", 120000),
+  primitive("projects.sources.list", "Open or claim a visible ChatGPT Project Sources tab and list source names/statuses without source contents.", 30000),
+  primitive("projects.sources.planAdd", "Dry-run an append-only Project Sources file add from explicit local files without opening ChatGPT.", 30000),
+  primitive("projects.sources.add", "Append explicit local files to a visible ChatGPT Project Sources list after confirmMutation: true.", 180000),
   primitive("response.copy", "Click Copy response and return clipboard Markdown, with DOM fallback.", 5000),
   primitive("modes.set", "Select a visible model or effort candidate when unambiguous.", 30000),
   primitive("tools.select", "Select a visible ChatGPT tool when unambiguous.", 30000)
@@ -254,6 +257,9 @@ function primitiveArgs(name: string): Record<string, string> {
   if (name.startsWith("threads.search")) return { query: "history search query" };
   if (name === "files.preflight") return { paths: "absolute local file paths", maxBytesPerFile: "optional local per-file byte limit", maxTotalBytes: "optional local total byte limit" };
   if (name.startsWith("files.attach")) return { paths: "absolute local file paths" };
+  if (name === "projects.sources.list") return { projectUrl: "ChatGPT Project URL such as https://chatgpt.com/g/g-p-.../project", existingTab: "optional exact existing-tab policy", timeoutMs: "optional browser timeout" };
+  if (name === "projects.sources.planAdd") return { projectUrl: "ChatGPT Project URL", files: "explicit absolute local file paths", batchSize: "optional upload batch size" };
+  if (name === "projects.sources.add") return { projectUrl: "ChatGPT Project URL", files: "explicit absolute local file paths", confirmMutation: "must be true to mutate Project Sources", batchSize: "optional upload batch size" };
   if (name === "modes.set") {
     return {
       effort: "visible effort label such as Thinking or Extended",
@@ -282,6 +288,15 @@ function primitiveExamples(name: string): string[] {
       String.raw`// On Windows backend hosts, use paths such as C:\Users\you\Pictures\image.jpg.`
     ];
   }
+  if (name === "projects.sources.list") {
+    return [`await chatgpt.projects.sources.list({ projectUrl: "https://chatgpt.com/g/g-p-example/project" });`];
+  }
+  if (name === "projects.sources.planAdd") {
+    return [`await chatgpt.projects.sources.planAdd({ projectUrl: "https://chatgpt.com/g/g-p-example/project", files: ["/absolute/host/path.md"] });`];
+  }
+  if (name === "projects.sources.add") {
+    return [`await chatgpt.projects.sources.add({ projectUrl: "https://chatgpt.com/g/g-p-example/project", files: ["/absolute/host/path.md"], confirmMutation: true });`];
+  }
   if (name.startsWith("artifacts.")) {
     return [`await chatgpt.artifacts.downloadLatest({ destDir: "/absolute/host/output" });`];
   }
@@ -292,6 +307,8 @@ function primitiveBlockers(name: string): string[] {
   if (name === "files.preflight") return ["not_found", "permission", "upload_failed"];
   if (name.startsWith("files.attach")) return ["browser_bridge_unavailable", "login_required", "permission", "upload_failed"];
   if (name.startsWith("files.download")) return ["browser_bridge_unavailable", "login_required", "download_unavailable"];
+  if (name === "projects.sources.planAdd") return ["not_found", "permission", "upload_failed"];
+  if (name.startsWith("projects.sources.")) return ["browser_bridge_unavailable", "login_required", "selector_drift", "confirmation", "permission", "upload_failed"];
   if (name.startsWith("artifacts.")) return ["browser_bridge_unavailable", "login_required", "artifact_unavailable", "artifact_selector_drift", "artifact_download_unavailable"];
   if (name.startsWith("modes.") || name.startsWith("tools.")) return ["browser_bridge_unavailable", "login_required", "selector_drift"];
   return commonBlockers();

@@ -82,6 +82,11 @@
       "schema": "commandResult"
     },
     {
+      "case": "project_sources_plan_add",
+      "file": "project-sources-plan-add.json",
+      "schema": "commandResult"
+    },
+    {
       "case": "report_redaction_default",
       "file": "report-redaction-default.json",
       "schema": "commandResult"

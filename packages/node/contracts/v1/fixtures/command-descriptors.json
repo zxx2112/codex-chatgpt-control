@@ -839,6 +839,79 @@
     },
     {
       "args": {
+        "existingTab": "optional exact existing-tab policy",
+        "projectUrl": "ChatGPT Project URL such as https://chatgpt.com/g/g-p-.../project",
+        "timeoutMs": "optional browser timeout"
+      },
+      "blockers": [
+        "browser_bridge_unavailable",
+        "login_required",
+        "selector_drift",
+        "confirmation",
+        "permission",
+        "upload_failed"
+      ],
+      "defaults": {},
+      "defaultTimeoutMs": 30000,
+      "examples": [
+        "await chatgpt.projects.sources.list({ projectUrl: \"https://chatgpt.com/g/g-p-example/project\" });"
+      ],
+      "layer": "primitive",
+      "name": "projects.sources.list",
+      "retryPolicy": "Return structured CommandResult failures; retry only when the blocker is recoverable and no duplicate prompt will be submitted.",
+      "risk": "low",
+      "summary": "Open or claim a visible ChatGPT Project Sources tab and list source names/statuses without source contents."
+    },
+    {
+      "args": {
+        "batchSize": "optional upload batch size",
+        "files": "explicit absolute local file paths",
+        "projectUrl": "ChatGPT Project URL"
+      },
+      "blockers": [
+        "not_found",
+        "permission",
+        "upload_failed"
+      ],
+      "defaults": {},
+      "defaultTimeoutMs": 30000,
+      "examples": [
+        "await chatgpt.projects.sources.planAdd({ projectUrl: \"https://chatgpt.com/g/g-p-example/project\", files: [\"/absolute/host/path.md\"] });"
+      ],
+      "layer": "primitive",
+      "name": "projects.sources.planAdd",
+      "retryPolicy": "Return structured CommandResult failures; retry only when the blocker is recoverable and no duplicate prompt will be submitted.",
+      "risk": "low",
+      "summary": "Dry-run an append-only Project Sources file add from explicit local files without opening ChatGPT."
+    },
+    {
+      "args": {
+        "batchSize": "optional upload batch size",
+        "confirmMutation": "must be true to mutate Project Sources",
+        "files": "explicit absolute local file paths",
+        "projectUrl": "ChatGPT Project URL"
+      },
+      "blockers": [
+        "browser_bridge_unavailable",
+        "login_required",
+        "selector_drift",
+        "confirmation",
+        "permission",
+        "upload_failed"
+      ],
+      "defaults": {},
+      "defaultTimeoutMs": 180000,
+      "examples": [
+        "await chatgpt.projects.sources.add({ projectUrl: \"https://chatgpt.com/g/g-p-example/project\", files: [\"/absolute/host/path.md\"], confirmMutation: true });"
+      ],
+      "layer": "primitive",
+      "name": "projects.sources.add",
+      "retryPolicy": "Return structured CommandResult failures; retry only when the blocker is recoverable and no duplicate prompt will be submitted.",
+      "risk": "medium",
+      "summary": "Append explicit local files to a visible ChatGPT Project Sources list after confirmMutation: true."
+    },
+    {
+      "args": {
         "format": "markdown, normalized_text, visible_text, html, blocks, or all",
         "prefer": "clipboard or dom"
       },

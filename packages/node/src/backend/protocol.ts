@@ -44,6 +44,9 @@ export const backendCommands = [
   "files.preflight",
   "files.attach",
   "files.downloadLatest",
+  "projects.sources.list",
+  "projects.sources.planAdd",
+  "projects.sources.add",
   "modes.set",
   "tools.select",
   "response.copy"

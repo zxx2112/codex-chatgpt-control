@@ -38,6 +38,11 @@ from .models import (
     DoctorReport,
     FilePreflightData,
     FilePreflightFile,
+    ProjectSource,
+    ProjectSourcePlanFile,
+    ProjectSourcesAddPlanData,
+    ProjectSourcesListData,
+    ProjectSourceUploadBatch,
     RunReportData,
     SequencePlan,
 )
@@ -45,6 +50,7 @@ from .transport import NodeSidecarError, NodeSidecarTransport
 from .runner import RunResult, RunResultStreaming, RunState, Runner
 from .responses import ResponsesClient, ResponsesValidationResult
 from .primitives import ArtifactsClient, FilesClient, MessagesClient, ModesClient, ResponseClient, SessionClient, ThreadsClient, ToolsClient
+from .primitives import ProjectSourcesClient, ProjectsClient
 from .reports import ReportsClient
 from .untrusted_output import (
     INTEGRITY_SCHEMA_VERSION,
@@ -104,6 +110,13 @@ __all__ = [
     "ModesClient",
     "NodeSidecarError",
     "NodeSidecarTransport",
+    "ProjectSourcesClient",
+    "ProjectSource",
+    "ProjectSourcePlanFile",
+    "ProjectSourcesAddPlanData",
+    "ProjectsClient",
+    "ProjectSourcesListData",
+    "ProjectSourceUploadBatch",
     "ReportsClient",
     "ResponseClient",
     "RunReportData",

@@ -110,7 +110,7 @@ The backend must support:
 - diagnostics: `doctor`
 - reports: `createReport`, `reports.create`, `reports.redact`, `reports.summarize`
 - command discovery: `commands`, `describe`, `help`
-- primitives: `session.bootstrap`, `threads.*`, `messages.*`, `artifacts.*`, `files.preflight`, `files.attach`, `files.downloadLatest`, `modes.set`, `tools.select`, `response.copy`
+- primitives: `session.bootstrap`, `threads.*`, `messages.*`, `artifacts.*`, `files.preflight`, `files.attach`, `files.downloadLatest`, `projects.sources.list`, `projects.sources.planAdd`, `projects.sources.add`, `modes.set`, `tools.select`, `response.copy`
 
 `doctor` returns a normal `CommandResult` whose `data.checks` map is extensible. Scenario checks such as `existing_tab`, `artifacts`, `file_preflight`, `localization`, and `reports` may add optional `code`, `blockerKind`, `nextCommand`, and JSON `details` fields to individual check entries while preserving the existing `status`, `message`, and `remediation` fields.
 
@@ -119,6 +119,16 @@ The backend must support:
 Attachment paths are interpreted on the machine running the Node backend. Use an absolute path in that host operating system's native form. On macOS/Linux/WSL, use paths such as `/example/user/file.pdf`, `/home/you/file.pdf`, or `/mnt/c/example/user/file.pdf`. On Windows backend hosts, use fully qualified paths such as `C:\Users\you\file.pdf` or UNC paths such as `\\server\share\file.pdf`. Drive-relative paths like `C:Users\you\file.pdf`, root-relative paths like `\tmp\file.pdf`, and Windows-looking paths sent to a POSIX backend are rejected before filesystem access.
 
 Use `files.preflight` for non-mutating local validation before browser upload workflows. It validates absolute paths, existence, readability, file-vs-directory status, configurable per-file and total byte limits, duplicate basenames, duplicate resolved paths, zero-byte files, and extension-based MIME/category guesses. It does not open ChatGPT, perform a live upload, or read file contents for MIME detection. `askWithFiles` and `files.attach` run the same preflight before upload attempts so obvious local file failures stop before browser interaction.
+
+## Project Sources
+
+Project Sources V1 is a narrow visible-UI surface for ChatGPT Project URLs such as `https://chatgpt.com/g/g-p-.../project`.
+
+- `projects.sources.list` opens or claims the Project Sources UI and returns source names plus coarse statuses only.
+- `projects.sources.planAdd` validates explicit local file paths with the same metadata-only preflight used by `files.preflight`, batches the upload plan, and does not open ChatGPT.
+- `projects.sources.add` is append-only and requires `confirmMutation: true`; without it, the command returns a `needs_confirmation` blocker with the dry-run plan.
+
+The implementation normalizes nested project chat URLs back to the project page before operating. It does not delete, replace, sync repository trees, read cookies/storage/auth headers, call private ChatGPT endpoints, or read source file contents while planning. Confirmed upload uses visible browser file chooser primitives and diffs before/after source names to report added sources.
 
 ## Generated Artifacts
 

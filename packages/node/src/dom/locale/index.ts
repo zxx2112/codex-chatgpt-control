@@ -177,6 +177,9 @@ const nonToolKeys = [
   "addFilesButton",
   "addFilesOpenerCandidates",
   "addPhotosFilesMenuItem",
+  "projectSourcesTab",
+  "projectSourcesAddSource",
+  "projectSourcesUploadFiles",
   "copyResponse",
   "download",
   "downloadImage",
@@ -214,6 +217,9 @@ export const localeLabels: {
   addFilesButton: string[];
   addFilesOpenerCandidates: string[];
   addPhotosFilesMenuItem: string[];
+  projectSourcesTab: string[];
+  projectSourcesAddSource: string[];
+  projectSourcesUploadFiles: string[];
   copyResponse: string[];
   download: string[];
   downloadImage: string[];

@@ -64,6 +64,23 @@ await chatgpt.askWithFiles({
 
 Use the second example only when the backend process itself is running on Windows. If the backend runs in WSL/Linux, pass the WSL/Linux path, such as `/home/you/Documents/report.pdf`.
 
+Plan append-only ChatGPT Project Sources changes before mutating a project:
+
+```ts
+const plan = await chatgpt.projects.sources.planAdd({
+  projectUrl: "https://chatgpt.com/g/g-p-example/project",
+  files: ["/absolute/host/path/to/source.md"]
+});
+
+const added = await chatgpt.projects.sources.add({
+  projectUrl: "https://chatgpt.com/g/g-p-example/project",
+  files: ["/absolute/host/path/to/source.md"],
+  confirmMutation: true
+});
+```
+
+`planAdd` validates explicit local file metadata without reading file contents or opening ChatGPT. `add` is append-only and returns `needs_confirmation` unless `confirmMutation: true` is supplied.
+
 Explain structured blockers before deciding whether to retry:
 
 ```ts

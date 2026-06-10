@@ -256,6 +256,40 @@ class FilePreflightData(WireModel):
     total_bytes: int = Field(alias="totalBytes")
 
 
+class ProjectSource(WireModel):
+    name: str
+    status: str
+
+
+class ProjectSourcePlanFile(FilePreflightFile):
+    display_path: str = Field(alias="displayPath")
+
+
+class ProjectSourceUploadBatch(WireModel):
+    index: int
+    files: list[ProjectSourcePlanFile]
+    total_bytes: int = Field(alias="totalBytes")
+
+
+class ProjectSourcesAddPlanData(WireModel):
+    project_id: str = Field(alias="projectId")
+    project_slug: str | None = Field(default=None, alias="projectSlug")
+    url: str
+    project_url: str = Field(alias="projectUrl")
+    operation: str
+    dry_run: bool = Field(alias="dryRun")
+    files: list[ProjectSourcePlanFile]
+    batches: list[ProjectSourceUploadBatch]
+    total_bytes: int = Field(alias="totalBytes")
+
+
+class ProjectSourcesListData(WireModel):
+    project_id: str = Field(alias="projectId")
+    project_slug: str | None = Field(default=None, alias="projectSlug")
+    url: str
+    sources: list[ProjectSource]
+
+
 def _command_output_text(data: Any) -> str | None:
     if not isinstance(data, dict):
         return None

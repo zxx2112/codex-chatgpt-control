@@ -146,6 +146,10 @@ class AsyncClientTests(unittest.IsolatedAsyncioTestCase):
         ask = await chatgpt.ask(prompt="hi")
         bootstrap = await chatgpt.session.bootstrap(prefer_existing_tab=False)
         artifact = await chatgpt.artifacts.wait(kind="image", require_download=True)
+        project_sources = await chatgpt.projects.sources.plan_add(
+            project_url="https://chatgpt.com/g/g-p-example/project",
+            files=["/tmp/a.txt"],
+        )
         report = await chatgpt.reports.redact({"prompt": "private"})
         commands = await chatgpt.commands()
         described = await chatgpt.describe("runner.run")
@@ -154,6 +158,7 @@ class AsyncClientTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(ask.data["command"], "ask")
         self.assertEqual(bootstrap.data["command"], "session.bootstrap")
         self.assertEqual(artifact.data["command"], "artifacts.wait")
+        self.assertEqual(project_sources.data["command"], "projects.sources.planAdd")
         self.assertEqual(report.data["command"], "reports.redact")
         self.assertEqual(commands[0].name, "runner.run")
         self.assertEqual(described.name, "runner.run")
@@ -162,6 +167,7 @@ class AsyncClientTests(unittest.IsolatedAsyncioTestCase):
             "ask",
             "session.bootstrap",
             "artifacts.wait",
+            "projects.sources.planAdd",
             "reports.redact",
             "commands",
             "describe",

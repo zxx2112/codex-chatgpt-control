@@ -73,6 +73,7 @@ Localized — lives in `src/dom/locale/en.ts` (English) and per-locale files, sa
 | `newChat` | new-chat button | `aria-label` |
 | `addFilesButton` / `addFilesOpenerCandidates` | add-files opener | `aria-label` |
 | `addPhotosFilesMenuItem` | "Add photos & files" menu item | visible menu text |
+| `projectSourcesTab` / `projectSourcesAddSource` / `projectSourcesUploadFiles` | Project Sources tab and append-add flow | visible tab/button/menu text |
 | `copyResponse` | copy-response button | `aria-label` |
 | `download` / `downloadImage` / `imageContainerHint` | download affordances | `aria-label` / container hint |
 | `modeLabels` / `modeOpenerExtra` | model/effort switcher | visible button + menu text |
@@ -174,6 +175,9 @@ See [Verification](#verification).
   the existing English entry already covers it — do not invent a translation.
 - **One string can appear in several keys.** "Search chats" is both a button label and a
   signed-in marker; add the translation to each relevant array.
+- **Project Sources labels are English-only until verified.** Do not translate the Sources
+  tab, Add source button, or upload-files menu item from general language knowledge. Capture
+  the actual localized Project UI first, then add only observed strings.
 
 ## Maintaining detection when ChatGPT changes its UI
 

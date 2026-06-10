@@ -1,6 +1,7 @@
 import type { CommandResult, RuntimeEnv, SequencePlan, SequencePolicy, SequenceStep, SequenceStepResult } from "../types.js";
 import { downloadLatestArtifact, listLatestArtifacts, waitForArtifact } from "./artifacts.js";
 import { attachFiles, downloadLatestFile } from "./files.js";
+import { addProjectSources, buildProjectSourceAddPlan, listProjectSources } from "./project-sources.js";
 import { askMessage, composeMessage, readLatest, submitMessage, waitAndRead, waitForMessage } from "./messages.js";
 import { copyResponse } from "./response-actions.js";
 import { bootstrap } from "./session.js";
@@ -96,6 +97,12 @@ export async function executeStep(
       return attachFiles(env, step.args);
     case "files.downloadLatest":
       return downloadLatestFile(env, step.args);
+    case "projects.sources.list":
+      return listProjectSources(env, step.args);
+    case "projects.sources.planAdd":
+      return buildProjectSourceAddPlan(env, step.args);
+    case "projects.sources.add":
+      return addProjectSources(env, step.args);
     case "response.copy":
       return copyResponse(env, step.args);
     case "modes.set":

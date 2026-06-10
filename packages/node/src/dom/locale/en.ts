@@ -18,6 +18,9 @@ export const en = {
   /** Fallback opener labels tried in order when the primary add-files control is absent. */
   addFilesOpenerCandidates: ["Add files and more", "Add files", "Add photos"],
   addPhotosFilesMenuItem: ["Add photos & files"],
+  projectSourcesTab: ["Sources"],
+  projectSourcesAddSource: ["Add source"],
+  projectSourcesUploadFiles: ["Upload files", "Upload file", "Add files"],
   copyResponse: ["Copy response"],
 
   // --- Download affordances (matched as `aria-label` substrings) ---

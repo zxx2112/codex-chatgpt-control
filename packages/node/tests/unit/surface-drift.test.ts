@@ -49,7 +49,7 @@ describe("surface drift gate", () => {
     for (const docPath of model.policy.generatedBlockerDocs) {
       const text = model.docs[docPath];
       if (text !== undefined) {
-        model.docs[docPath] = text.replace(/\n/g, "\r\n");
+        model.docs[docPath] = toCrlfLineEndings(text);
       }
     }
 
@@ -74,4 +74,8 @@ function expectErrors(model: SurfaceDriftModel): string[] {
   const result = validateSurfaceDriftModel(model);
   expect(result.ok).toBe(false);
   return result.errors;
+}
+
+function toCrlfLineEndings(text: string): string {
+  return text.replace(/\r\n?/g, "\n").replace(/\n/g, "\r\n");
 }

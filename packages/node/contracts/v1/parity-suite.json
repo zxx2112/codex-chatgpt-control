@@ -187,6 +187,7 @@
         "doctor-scenario-preflight.json",
         "existing-tab-diagnostics-blocker.json",
         "files-preflight-success.json",
+        "project-sources-plan-add.json",
         "primitive-bootstrap-blocker.json",
         "workflow-ask-success.json"
       ],
@@ -199,6 +200,7 @@
         "src/commands/artifacts.ts",
         "src/dom/artifacts.ts",
         "src/commands/files.ts",
+        "src/commands/project-sources.ts",
         "src/commands/modes.ts",
         "src/commands/response-actions.ts",
         "src/commands/doctor.ts"
@@ -209,6 +211,7 @@
         "tests/unit/messages.test.ts",
         "tests/unit/artifacts.test.ts",
         "tests/unit/files.test.ts",
+        "tests/unit/project-sources.test.ts",
         "tests/unit/modes.test.ts",
         "tests/unit/backend-conformance.test.ts"
       ],
@@ -546,6 +549,27 @@
       "nodeTests": ["tests/unit/files.test.ts", "tests/unit/client.test.ts"],
       "pythonTests": ["tests/test_primitives.py"],
       "docs": ["references/backend-protocol.md", "references/troubleshooting.md", "references/python-parity.md"]
+    },
+    "projects.sources.list": {
+      "surface": "workflows-primitives-diagnostics",
+      "fixtures": ["command-descriptors.json"],
+      "nodeTests": ["tests/unit/project-sources.test.ts", "tests/unit/backend-dispatch.test.ts"],
+      "pythonTests": ["tests/test_primitives.py", "tests/test_async_client.py"],
+      "docs": ["references/backend-protocol.md", "references/localization.md", "references/python-parity.md"]
+    },
+    "projects.sources.planAdd": {
+      "surface": "workflows-primitives-diagnostics",
+      "fixtures": ["project-sources-plan-add.json", "command-descriptors.json"],
+      "nodeTests": ["tests/unit/project-sources.test.ts", "tests/unit/backend-dispatch.test.ts"],
+      "pythonTests": ["tests/test_primitives.py", "tests/test_async_client.py"],
+      "docs": ["references/backend-protocol.md", "references/python-parity.md"]
+    },
+    "projects.sources.add": {
+      "surface": "workflows-primitives-diagnostics",
+      "fixtures": ["project-sources-plan-add.json", "command-descriptors.json"],
+      "nodeTests": ["tests/unit/project-sources.test.ts", "tests/unit/backend-dispatch.test.ts"],
+      "pythonTests": ["tests/test_primitives.py", "tests/test_async_client.py"],
+      "docs": ["references/backend-protocol.md", "references/localization.md", "references/python-parity.md"]
     },
     "modes.set": {
       "surface": "workflows-primitives-diagnostics",

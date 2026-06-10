@@ -11,6 +11,7 @@ from .primitives import (
     FilesClient,
     MessagesClient,
     ModesClient,
+    ProjectsClient,
     ResponseClient,
     SessionClient,
     ThreadsClient,
@@ -77,6 +78,7 @@ class ChatGPT:
         self.threads = ThreadsClient(self._transport)
         self.messages = MessagesClient(self._transport)
         self.files = FilesClient(self._transport)
+        self.projects = ProjectsClient(self._transport)
         self.artifacts = ArtifactsClient(self._transport)
         self.modes = ModesClient(self._transport)
         self.tools = ToolsClient(self._transport)

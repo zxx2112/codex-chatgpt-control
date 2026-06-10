@@ -15,6 +15,7 @@ from codex_chatgpt_control.models import (
     CommandResult,
     DoctorReport,
     FilePreflightData,
+    ProjectSourcesAddPlanData,
     RunReportData,
     SequencePlan,
 )
@@ -157,6 +158,17 @@ class CompleteModelTests(unittest.TestCase):
         self.assertEqual(data.files[0].name, "spec.md")
         self.assertEqual(data.files[0].mime_type, "text/markdown")
         self.assertIn("mimeType", data.to_wire()["files"][0])
+
+    def test_project_sources_plan_add_fixture_parses_aliases(self) -> None:
+        result = CommandResult.from_wire(load_json("project-sources-plan-add.json")["result"])
+        data = ProjectSourcesAddPlanData.from_wire(result.data)
+
+        self.assertTrue(result.ok)
+        self.assertEqual(data.project_url, "https://chatgpt.com/g/g-p-example/project")
+        self.assertEqual(data.total_bytes, 16)
+        self.assertEqual(data.files[0].display_path, data.files[0].path)
+        self.assertEqual(data.batches[0].total_bytes, 5)
+        self.assertIn("displayPath", data.to_wire()["files"][0])
 
 
 if __name__ == "__main__":

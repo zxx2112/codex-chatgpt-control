@@ -389,6 +389,75 @@ export type AttachFilesData = {
   files: AttachedFile[];
 };
 
+export type ProjectSourceStatus =
+  | "ready"
+  | "processing"
+  | "failed"
+  | "unknown";
+
+export type ProjectSource = {
+  name: string;
+  status: ProjectSourceStatus;
+};
+
+export type ProjectSourcesUrl = {
+  projectId: string;
+  projectSlug?: string;
+  url: string;
+};
+
+export type ProjectSourcesListArgs = {
+  projectUrl: string;
+  existingTab?: boolean | ExistingTabPolicy;
+  preferExistingTab?: boolean;
+  timeoutMs?: number;
+};
+
+export type ProjectSourcesListData = ProjectSourcesUrl & {
+  sources: ProjectSource[];
+};
+
+export type ProjectSourcePlanFile = FilePreflightFile & {
+  displayPath: string;
+};
+
+export type ProjectSourceUploadBatch = {
+  index: number;
+  files: ProjectSourcePlanFile[];
+  totalBytes: number;
+};
+
+export type ProjectSourcesPlanAddArgs = {
+  projectUrl: string;
+  files: string[];
+  batchSize?: number;
+  maxBytesPerFile?: number;
+  maxTotalBytes?: number;
+};
+
+export type ProjectSourcesAddPlanData = ProjectSourcesUrl & {
+  projectUrl: string;
+  operation: "append_add";
+  dryRun: true;
+  files: ProjectSourcePlanFile[];
+  batches: ProjectSourceUploadBatch[];
+  totalBytes: number;
+};
+
+export type ProjectSourcesAddArgs = ProjectSourcesPlanAddArgs & {
+  confirmMutation?: boolean;
+  existingTab?: boolean | ExistingTabPolicy;
+  preferExistingTab?: boolean;
+  timeoutMs?: number;
+};
+
+export type ProjectSourcesAddData = Omit<ProjectSourcesAddPlanData, "dryRun"> & {
+  dryRun: false;
+  before: ProjectSource[];
+  after: ProjectSource[];
+  added: ProjectSource[];
+};
+
 export type DownloadLatestArgs = {
   destDir: string;
   filenamePattern?: string;
@@ -505,6 +574,9 @@ export type SequenceStep =
   | { id: string; command: "artifacts.downloadLatest"; args: ArtifactDownloadArgs }
   | { id: string; command: "files.attach"; args: AttachFilesArgs }
   | { id: string; command: "files.downloadLatest"; args: DownloadLatestArgs }
+  | { id: string; command: "projects.sources.list"; args: ProjectSourcesListArgs }
+  | { id: string; command: "projects.sources.planAdd"; args: ProjectSourcesPlanAddArgs }
+  | { id: string; command: "projects.sources.add"; args: ProjectSourcesAddArgs }
   | { id: string; command: "response.copy"; args?: CopyResponseArgs }
   | { id: string; command: "modes.set"; args: SetModeArgs }
   | { id: string; command: "tools.select"; args: SelectToolArgs };

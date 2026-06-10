@@ -23,6 +23,8 @@ Wire fields stay TypeScript-compatible. Python exposes idiomatic aliases:
 | `metaPath` | `meta_path` |
 | `mimeType` | `mime_type` |
 | `totalBytes` | `total_bytes` |
+| `projectUrl` | `project_url` |
+| `displayPath` | `display_path` |
 
 Generated-image behavior stays owned by the TypeScript runtime. Python exposes
 the same backend commands through `chatgpt.artifacts.list_latest(...)`,
@@ -45,6 +47,16 @@ the shared `blocker-explanation-profiles.json` and
 Python does not reinterpret attachment paths. It sends the path string to the Node backend, and the backend validates the path against its own host operating system. Attachment paths must be absolute on the backend host. On macOS/Linux/WSL backends, use POSIX paths such as `/example/user/file.pdf` or `/mnt/c/example/user/file.pdf`. On Windows backends, use fully qualified paths such as `C:\Users\you\file.pdf` or UNC paths such as `\\server\share\file.pdf`. Drive-relative paths, root-relative paths, and Windows-looking paths sent to a POSIX backend are rejected before filesystem access.
 
 Python exposes the backend-visible `files.preflight` command as `chatgpt.files.preflight(...)`. It returns the same `CommandResult` as TypeScript and can be decoded with `FilePreflightData` when callers want typed metadata. The command validates paths, readability, file-vs-directory status, size limits, duplicate basenames, duplicate resolved paths, zero-byte files, and extension-based MIME/category guesses without opening ChatGPT or reading file contents for MIME detection.
+
+## Project Sources
+
+Python exposes the protocol-visible Project Sources commands through `chatgpt.projects.sources`:
+
+- `list(project_url=...)` maps to `projects.sources.list`.
+- `plan_add(project_url=..., files=[...])` maps to `projects.sources.planAdd`.
+- `add(project_url=..., files=[...], confirm_mutation=True)` maps to `projects.sources.add`.
+
+Python does not duplicate DOM or upload logic. Project URL normalization, visible Sources UI selection, source-list extraction, confirmation blockers, upload batching, and before/after diffing are owned by the TypeScript backend. `ProjectSourcesAddPlanData` and `ProjectSourcesListData` provide typed Pydantic aliases for callers that want to decode command `data`.
 
 ## Sync Python
 

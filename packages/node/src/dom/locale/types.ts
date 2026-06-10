@@ -18,6 +18,9 @@ export type LocaleStrings = {
   addFilesButton: string | readonly string[];
   addFilesOpenerCandidates: string | readonly string[];
   addPhotosFilesMenuItem: string | readonly string[];
+  projectSourcesTab: string | readonly string[];
+  projectSourcesAddSource: string | readonly string[];
+  projectSourcesUploadFiles: string | readonly string[];
   copyResponse: string | readonly string[];
 
   // --- Download affordances ---

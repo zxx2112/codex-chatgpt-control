@@ -147,6 +147,23 @@ await chatgpt.askWithFiles({
 });
 ```
 
+Plan append-only Project Sources changes before mutating a ChatGPT Project:
+
+```ts
+const plan = await chatgpt.projects.sources.planAdd({
+  projectUrl: "https://chatgpt.com/g/g-p-example/project",
+  files: ["/absolute/host/path/to/approved-source.md"]
+});
+
+const added = await chatgpt.projects.sources.add({
+  projectUrl: "https://chatgpt.com/g/g-p-example/project",
+  files: ["/absolute/host/path/to/approved-source.md"],
+  confirmMutation: true
+});
+```
+
+`planAdd` does not open ChatGPT or read file contents. `add` operates only through the visible Project Sources UI and returns `needs_confirmation` unless `confirmMutation: true` is supplied after user approval.
+
 Run a diagnostic before long workflows:
 
 ```ts

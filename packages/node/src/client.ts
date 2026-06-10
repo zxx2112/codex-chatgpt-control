@@ -13,6 +13,12 @@ import type {
   ListArtifactsArgs,
   NewThreadArgs,
   OpenThreadArgs,
+  ProjectSourcesAddArgs,
+  ProjectSourcesAddData,
+  ProjectSourcesAddPlanData,
+  ProjectSourcesListArgs,
+  ProjectSourcesListData,
+  ProjectSourcesPlanAddArgs,
   ReadLatestArgs,
   RuntimeEnv,
   SearchThreadsArgs,
@@ -25,6 +31,7 @@ import type {
 } from "./types.js";
 import { downloadLatestArtifact, listLatestArtifacts, waitForArtifact } from "./commands/artifacts.js";
 import { attachFiles, downloadLatestFile, preflightFiles } from "./commands/files.js";
+import { addProjectSources, buildProjectSourceAddPlan, listProjectSources } from "./commands/project-sources.js";
 import { doctor, type DoctorArgs, type DoctorReport } from "./commands/doctor.js";
 import { askMessage, composeMessage, readLatest, submitMessage, waitAndRead, waitForMessage } from "./commands/messages.js";
 import { selectTool, setMode } from "./commands/modes.js";
@@ -193,6 +200,13 @@ export type ChatGPTClient = {
     attach(args: AttachFilesArgs): Promise<CommandResult<unknown>>;
     downloadLatest(args: DownloadLatestArgs): Promise<CommandResult<unknown>>;
   };
+  projects: {
+    sources: {
+      list(args: ProjectSourcesListArgs): Promise<CommandResult<ProjectSourcesListData>>;
+      planAdd(args: ProjectSourcesPlanAddArgs): Promise<CommandResult<ProjectSourcesAddPlanData>>;
+      add(args: ProjectSourcesAddArgs): Promise<CommandResult<ProjectSourcesAddData | ProjectSourcesAddPlanData>>;
+    };
+  };
   modes: {
     set(args: SetModeArgs): Promise<CommandResult<unknown>>;
   };
@@ -265,6 +279,13 @@ export function createChatGPT(options: ChatGPTClientOptions = {}): ChatGPTClient
       preflight: args => preflightFiles(env, args),
       attach: args => attachFiles(env, args),
       downloadLatest: args => downloadLatestFile(env, args)
+    },
+    projects: {
+      sources: {
+        list: args => listProjectSources(env, args),
+        planAdd: args => buildProjectSourceAddPlan(env, args),
+        add: args => addProjectSources(env, args)
+      }
     },
     artifacts: {
       listLatest: args => listLatestArtifacts(env, args),

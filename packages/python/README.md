@@ -85,7 +85,7 @@ The `ChatGPT` facade exposes workflows and primitive command groups:
 - `chatgpt.run_plan({"name": "new-ask-read", ...})`
 - `chatgpt.doctor(...)`
 - `chatgpt.reports.create(...)`
-- `chatgpt.session`, `threads`, `messages`, `files`, `modes`, `tools`, `response`
+- `chatgpt.session`, `threads`, `messages`, `files`, `projects.sources`, `modes`, `tools`, `response`
 - `chatgpt.commands()`, `describe(...)`, `help(...)`
 - `chatgpt.explain_blocker(result_or_blocker, ...)` and module-level `explain_blocker(...)`
 
@@ -115,6 +115,23 @@ preflight = chatgpt.files.preflight(paths=["/absolute/host/path/to/report.pdf"])
 if not preflight.ok:
     print(preflight.blocker)
 ```
+
+Plan append-only ChatGPT Project Sources changes before mutating a project:
+
+```python
+plan = chatgpt.projects.sources.plan_add(
+    project_url="https://chatgpt.com/g/g-p-example/project",
+    files=["/absolute/host/path/to/source.md"],
+)
+
+added = chatgpt.projects.sources.add(
+    project_url="https://chatgpt.com/g/g-p-example/project",
+    files=["/absolute/host/path/to/source.md"],
+    confirm_mutation=True,
+)
+```
+
+`plan_add` validates explicit local file metadata without reading file contents or opening ChatGPT. `add` is append-only and returns `needs_confirmation` unless `confirm_mutation=True` is supplied.
 
 ## Backend And Browser Bridge
 

@@ -44,6 +44,7 @@ describe("backend dispatch", () => {
     expect((capabilities.result as { commands: string[] }).commands).toContain("runner.run");
     expect((capabilities.result as { commands: string[] }).commands).toContain("responses.create");
     expect((capabilities.result as { commands: string[] }).commands).toContain("files.preflight");
+    expect((capabilities.result as { commands: string[] }).commands).toContain("projects.sources.add");
   });
 
   it("dispatches runner.plan through the public ChatGPT client", async () => {
@@ -205,6 +206,44 @@ describe("backend dispatch", () => {
             category: "text"
           }
         ]
+      }
+    });
+  });
+
+  it("dispatches Project Sources dry-run and confirmation-gated add without browser mutation", async () => {
+    const dir = await mkdtemp(join(tmpdir(), "chatgpt-backend-project-sources-"));
+    const file = join(dir, "brief.md");
+    await writeFile(file, "hello");
+
+    const plan = await send(deterministicSession(), "projects.sources.planAdd", {
+      projectUrl: "https://chatgpt.com/g/g-p-example/project",
+      files: [file]
+    });
+    expectOk(plan);
+    expect(plan.result).toMatchObject({
+      ok: true,
+      status: "ok",
+      data: {
+        projectUrl: "https://chatgpt.com/g/g-p-example/project",
+        operation: "append_add",
+        dryRun: true,
+        totalBytes: 5,
+        files: [{ name: "brief.md", bytes: 5 }],
+        batches: [{ index: 0, files: [{ name: "brief.md" }] }]
+      }
+    });
+
+    const add = await send(deterministicSession(), "projects.sources.add", {
+      projectUrl: "https://chatgpt.com/g/g-p-example/project",
+      files: [file]
+    });
+    expectOk(add);
+    expect(add.result).toMatchObject({
+      ok: false,
+      status: "needs_confirmation",
+      blocker: {
+        kind: "confirmation",
+        code: "project_sources_add_confirmation_required"
       }
     });
   });

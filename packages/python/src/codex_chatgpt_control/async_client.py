@@ -274,6 +274,15 @@ class AsyncPrimitiveGroup:
         return call
 
 
+class AsyncProjectsClient:
+    def __init__(self, backend: Any) -> None:
+        self.sources = AsyncPrimitiveGroup(backend, {
+            "list": "projects.sources.list",
+            "plan_add": "projects.sources.planAdd",
+            "add": "projects.sources.add",
+        })
+
+
 class AsyncChatGPT:
     def __init__(self, transport: Any) -> None:
         self._backend = transport
@@ -292,6 +301,7 @@ class AsyncChatGPT:
             "wait_and_read": "messages.waitAndRead",
         })
         self.files = AsyncPrimitiveGroup(transport, {"preflight": "files.preflight", "attach": "files.attach", "download_latest": "files.downloadLatest"})
+        self.projects = AsyncProjectsClient(transport)
         self.artifacts = AsyncPrimitiveGroup(transport, {
             "list_latest": "artifacts.listLatest",
             "wait": "artifacts.wait",

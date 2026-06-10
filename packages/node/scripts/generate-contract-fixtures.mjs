@@ -321,6 +321,20 @@ await writeGeneratedFixture(
 );
 
 await writeGeneratedFixture(
+  "project-sources-plan-add.json",
+  "commandResult",
+  "project_sources_plan_add",
+  commandResultFixture(await backendResult(
+    "projects.sources.planAdd",
+    {
+      projectUrl: "https://chatgpt.com/g/g-p-example/project",
+      files: [filePreflightSpecPath, filePreflightContextPath],
+      batchSize: 1
+    }
+  ))
+);
+
+await writeGeneratedFixture(
   "workflow-ask-success.json",
   "commandResult",
   "workflow_ask_success",

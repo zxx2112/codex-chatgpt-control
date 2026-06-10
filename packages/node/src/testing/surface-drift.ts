@@ -191,7 +191,7 @@ export function validateSurfaceDriftModel(model: SurfaceDriftModel): SurfaceDrif
     const text = model.docs[docPath];
     if (text === undefined) continue;
     generatedDocsChecked += 1;
-    if (extractGeneratedBlockerCoverage(text) !== expectedBlockerSection) {
+    if (normalizeLineEndings(extractGeneratedBlockerCoverage(text)) !== expectedBlockerSection) {
       errors.push(`generated blocker coverage section is stale in ${docPath}`);
     }
   }
@@ -274,6 +274,10 @@ function extractGeneratedBlockerCoverage(text: string): string | undefined {
   const end = text.indexOf(GENERATED_BLOCKERS_END);
   if (start < 0 || end < start) return undefined;
   return text.slice(start, end + GENERATED_BLOCKERS_END.length);
+}
+
+function normalizeLineEndings(text: string | undefined): string | undefined {
+  return text?.replace(/\r\n?/g, "\n");
 }
 
 function validatePolicy(model: SurfaceDriftModel, errors: string[]): void {

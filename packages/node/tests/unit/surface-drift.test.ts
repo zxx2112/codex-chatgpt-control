@@ -44,6 +44,20 @@ describe("surface drift gate", () => {
     expect(expectErrors(model)).toContain("generated blocker coverage section is stale in references/troubleshooting.md");
   });
 
+  it("accepts generated blocker docs with CRLF checkout line endings", () => {
+    const model = currentModel();
+    for (const docPath of model.policy.generatedBlockerDocs) {
+      const text = model.docs[docPath];
+      if (text !== undefined) {
+        model.docs[docPath] = text.replace(/\n/g, "\r\n");
+      }
+    }
+
+    const result = validateSurfaceDriftModel(model);
+
+    expect(result.ok).toBe(true);
+  });
+
   it("fails when a non-exempt backend command is missing from the Python facade", () => {
     const model = currentModel();
     model.pythonCommands = model.pythonCommands.filter(command => command !== "projects.sources.add");

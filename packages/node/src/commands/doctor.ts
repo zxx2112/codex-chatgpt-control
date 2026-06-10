@@ -5,6 +5,7 @@ import { readPageState } from "../browser/page-state.js";
 import { localeLabels } from "../dom/locale-labels.js";
 import { BROWSER_BRIDGE_REMEDIATION, resultOk } from "../errors.js";
 import { explainCommandBlocker } from "../diagnostics/blockers.js";
+import { preflightFiles } from "./files.js";
 import type { BootstrapArgs, CommandResult, ExistingTabPolicy, RuntimeEnv } from "../types.js";
 import { contextFromPage } from "./context.js";
 import type { RunReportOptions } from "./reports.js";
@@ -121,7 +122,7 @@ export async function doctor(env: RuntimeEnv, args: DoctorArgs = {}): Promise<Co
         checks.artifacts = artifactsCheck(env);
         break;
       case "file_preflight":
-        checks.file_preflight = filePreflightCheck(args);
+        checks.file_preflight = await filePreflightCheck(env, args);
         break;
       case "localization":
         checks.localization = localizationCheck(env);
@@ -269,16 +270,42 @@ function artifactsCheck(env: RuntimeEnv): CapabilityCheck {
   return unknown("Artifact primitives need selector support plus download, DOM, or page-assets support to prove readiness.", undefined, details);
 }
 
-function filePreflightCheck(args: DoctorArgs): CapabilityCheck {
-  return unsupported(
-    "File preflight is registered as a Stage 2 scaffold; full local file validation is owned by Stage 3.",
-    undefined,
-    {
-      pathCount: args.files?.length ?? 0,
-      fullValidation: "deferred_to_stage_3"
-    },
-    "files.attach",
-    "file_preflight_deferred"
+async function filePreflightCheck(env: RuntimeEnv, args: DoctorArgs): Promise<CapabilityCheck> {
+  const paths = args.files ?? [];
+  const result = await preflightFiles(env, { paths });
+  const pathCount = paths.length;
+
+  if (result.ok && result.data !== undefined) {
+    return ok(
+      pathCount === 0
+        ? "No file paths were supplied; file preflight has no local files to validate."
+        : "File preflight completed without blocking local file issues.",
+      {
+        pathCount,
+        totalBytes: result.data.totalBytes,
+        warnings: result.warnings,
+        files: result.data.files.map(file => ({
+          name: file.name,
+          bytes: file.bytes,
+          extension: file.extension,
+          mimeType: file.mimeType,
+          category: file.category
+        }))
+      }
+    );
+  }
+
+  return withBlockerDetails(
+    blocked(
+      result.blocker?.message ?? result.error?.message ?? "File preflight failed.",
+      result.blocker?.remediation?.map(step => `${step.label}: ${step.instruction}`),
+      {
+        pathCount,
+        warnings: result.warnings
+      }
+    ),
+    result,
+    "files.preflight"
   );
 }
 

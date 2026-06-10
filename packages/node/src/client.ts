@@ -7,6 +7,8 @@ import type {
   CommandResult,
   CopyResponseArgs,
   DownloadLatestArgs,
+  FilePreflightArgs,
+  FilePreflightData,
   ExistingTabPolicy,
   ListArtifactsArgs,
   NewThreadArgs,
@@ -16,12 +18,13 @@ import type {
   SearchThreadsArgs,
   SelectToolArgs,
   SequencePlan,
+  SequenceStep,
   SetModeArgs,
   ThreadTarget,
   WaitArgs
 } from "./types.js";
 import { downloadLatestArtifact, listLatestArtifacts, waitForArtifact } from "./commands/artifacts.js";
-import { attachFiles, downloadLatestFile } from "./commands/files.js";
+import { attachFiles, downloadLatestFile, preflightFiles } from "./commands/files.js";
 import { doctor, type DoctorArgs, type DoctorReport } from "./commands/doctor.js";
 import { askMessage, composeMessage, readLatest, submitMessage, waitAndRead, waitForMessage } from "./commands/messages.js";
 import { selectTool, setMode } from "./commands/modes.js";
@@ -186,6 +189,7 @@ export type ChatGPTClient = {
     waitAndRead(args?: WaitArgs & ReadLatestArgs): Promise<CommandResult<unknown>>;
   };
   files: {
+    preflight(args: FilePreflightArgs): Promise<CommandResult<FilePreflightData>>;
     attach(args: AttachFilesArgs): Promise<CommandResult<unknown>>;
     downloadLatest(args: DownloadLatestArgs): Promise<CommandResult<unknown>>;
   };
@@ -258,6 +262,7 @@ export function createChatGPT(options: ChatGPTClientOptions = {}): ChatGPTClient
       waitAndRead: args => waitAndRead(env, args)
     },
     files: {
+      preflight: args => preflightFiles(env, args),
       attach: args => attachFiles(env, args),
       downloadLatest: args => downloadLatestFile(env, args)
     },
@@ -286,6 +291,9 @@ async function runGuarded(
 ): Promise<CommandResult<unknown>> {
   const budget = checkRunBudget(plan, limits);
   if (budget !== undefined) return budget;
+
+  const filePreflight = await preflightPlanFiles(plan, env);
+  if (filePreflight !== undefined) return filePreflight;
 
   const result = await runSequence(plan, env);
   if (report === undefined || report.enabled === false) return result;
@@ -330,6 +338,23 @@ async function runGuarded(
       `Run report creation failed: ${reportResult.error?.message ?? reportResult.blocker?.message ?? reportResult.status}`
     ]
   };
+}
+
+async function preflightPlanFiles(
+  plan: SequencePlan,
+  env: RuntimeEnv
+): Promise<CommandResult<unknown> | undefined> {
+  const paths = plan.steps
+    .flatMap(step => step.command === "files.attach" ? pathsFromAttachStep(step) : []);
+  if (paths.length === 0) return undefined;
+
+  const result = await preflightFiles(env, { paths });
+  return result.ok ? undefined : result;
+}
+
+function pathsFromAttachStep(step: Extract<SequenceStep, { command: "files.attach" }>): string[] {
+  const paths = step.args.paths;
+  return paths.every(item => typeof item === "string") ? paths : [];
 }
 
 function normalizeLimits(limits: Partial<RunLimits> | undefined): RunLimits {

@@ -357,6 +357,34 @@ export type AttachedFile = {
   bytes: number;
 };
 
+export type FileCategory =
+  | "text"
+  | "document"
+  | "spreadsheet"
+  | "data"
+  | "image"
+  | "audio"
+  | "video"
+  | "archive"
+  | "unknown";
+
+export type FilePreflightArgs = {
+  paths: string[];
+  maxBytesPerFile?: number;
+  maxTotalBytes?: number;
+};
+
+export type FilePreflightFile = AttachedFile & {
+  extension: string;
+  mimeType: string;
+  category: FileCategory;
+};
+
+export type FilePreflightData = {
+  files: FilePreflightFile[];
+  totalBytes: number;
+};
+
 export type AttachFilesData = {
   files: AttachedFile[];
 };

@@ -1,4 +1,4 @@
-import { mkdtemp, readFile } from "node:fs/promises";
+import { mkdtemp, readFile, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
@@ -60,6 +60,11 @@ describe("createChatGPT", () => {
     });
     expect(chatgpt.describe("ask")).toMatchObject({
       defaults: expect.objectContaining({ wait: true, read: { format: "markdown" } })
+    });
+    expect(chatgpt.describe("files.preflight")).toMatchObject({
+      layer: "primitive",
+      risk: "low",
+      blockers: expect.arrayContaining(["not_found", "permission", "upload_failed"])
     });
     expect(chatgpt.help("ask")).toContain("Ask ChatGPT");
     expect(chatgpt.help("ask")).toContain("Retry policy:");
@@ -133,6 +138,7 @@ describe("createChatGPT", () => {
     expect(typeof chatgpt.threads.search).toBe("function");
     expect(typeof chatgpt.messages.readLatest).toBe("function");
     expect(typeof chatgpt.artifacts.downloadLatest).toBe("function");
+    expect(typeof chatgpt.files.preflight).toBe("function");
     expect(typeof chatgpt.files.attach).toBe("function");
     expect(typeof chatgpt.response.copy).toBe("function");
   });
@@ -586,7 +592,46 @@ describe("createChatGPT", () => {
     expect(result.data?.checks.reports?.message).not.toContain("redaction is enabled");
   });
 
-  it("doctor exposes the file-preflight scaffold without opening a browser", async () => {
+  it("askWithFiles stops on local file preflight blockers before opening a browser", async () => {
+    const dir = await mkdtemp(join(tmpdir(), "chatgpt-preflight-client-missing-"));
+    const missing = join(dir, "missing.md");
+    const opened: string[] = [];
+    const browser: BrowserLike = {
+      name: "chrome",
+      tabs: {
+        selected: () => {
+          throw new Error("selected tab should not be read when file preflight fails.");
+        },
+        create: async url => {
+          opened.push(url);
+          return fakeChatGPTPage();
+        }
+      }
+    };
+    const chatgpt = createChatGPT({ browser });
+
+    const result = await chatgpt.askWithFiles({
+      prompt: "summarize",
+      files: [missing],
+      wait: false,
+      read: false
+    });
+
+    expect(result.ok).toBe(false);
+    expect(result.status).toBe("not_found");
+    expect(result.blocker).toMatchObject({
+      kind: "not_found",
+      code: "file_missing",
+      fieldPath: "paths[0]"
+    });
+    expect(result.steps).toBeUndefined();
+    expect(opened).toEqual([]);
+  });
+
+  it("doctor validates file preflight metadata without opening a browser", async () => {
+    const dir = await mkdtemp(join(tmpdir(), "chatgpt-doctor-file-preflight-"));
+    const file = join(dir, "spec.md");
+    await writeFile(file, "hello");
     const opened: string[] = [];
     const browser: BrowserLike = {
       name: "chrome",
@@ -601,17 +646,25 @@ describe("createChatGPT", () => {
 
     const result = await chatgpt.doctor({
       check: ["file_preflight"],
-      files: ["/absolute/path/spec.md"]
+      files: [file]
     });
 
     expect(result.ok).toBe(true);
-    expect(result.data?.ready).toBe(false);
+    expect(result.data?.ready).toBe(true);
     expect(result.data?.checks.file_preflight).toMatchObject({
-      status: "unsupported",
-      code: "file_preflight_deferred",
+      status: "ok",
       details: {
         pathCount: 1,
-        fullValidation: "deferred_to_stage_3"
+        totalBytes: 5,
+        files: [
+          {
+            name: "spec.md",
+            bytes: 5,
+            extension: ".md",
+            mimeType: "text/markdown",
+            category: "text"
+          }
+        ]
       }
     });
     expect(opened).toEqual([]);

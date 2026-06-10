@@ -1,19 +1,26 @@
 import { access, readFile, stat } from "node:fs/promises";
 import { constants } from "node:fs";
+import path from "node:path";
 import { downloadLatestArtifact, locatorCountWithTimeout } from "./artifacts.js";
 import { waitForDownloadFromClick } from "../browser/downloads.js";
 import { resultError, resultOk } from "../errors.js";
 import { addFilesButton, cssSelectors, requiredLocator } from "../dom/selectors.js";
 import { localeLabels } from "../dom/locale-labels.js";
-import { basenameForHostPath, resolveForHostPath } from "../platform/local-paths.js";
+import { basenameForHostPath, isHostAbsolutePath, resolveForHostPath } from "../platform/local-paths.js";
 import type {
   AttachedFile,
   AttachFilesArgs,
   AttachFilesData,
+  BlockerKind,
+  CommandStatus,
   CommandResult,
   DownloadedFile,
   DownloadLatestArgs,
+  FileCategory,
   FileChooserLike,
+  FilePreflightArgs,
+  FilePreflightData,
+  FilePreflightFile,
   LocatorLike,
   PageLike,
   RuntimeEnv
@@ -24,6 +31,8 @@ import { localGuardTimeout } from "./timeouts.js";
 
 const CODEX_UPLOAD_PERMISSION_FIX = "Codex Settings > Computer Use > Chrome > Permissions > Uploads: set to Always allow, or add chatgpt.com to the allowed upload domains.";
 const CHROME_FILE_URL_PERMISSION_FIX = "Chrome chrome://extensions > Codex extension > Details: enable Allow access to file URLs.";
+const DEFAULT_MAX_BYTES_PER_FILE = 512 * 1024 * 1024;
+const DEFAULT_MAX_TOTAL_BYTES = 2 * 1024 * 1024 * 1024;
 
 type AttachmentReadinessSnapshot = {
   files: Array<{ name: string; visible: boolean }>;
@@ -32,30 +41,132 @@ type AttachmentReadinessSnapshot = {
 };
 
 export async function validateAttachPaths(paths: string[]): Promise<AttachedFile[]> {
-  const files: AttachedFile[] = [];
+  const result = await preflightFiles({}, { paths });
+  if (!result.ok || result.data === undefined) {
+    throw new Error(result.blocker?.message ?? result.error?.message ?? "File attachment preflight failed.");
+  }
 
-  for (const path of paths) {
-    const absolute = resolveForHostPath(path);
-    await access(absolute, constants.R_OK);
-    const fileStat = await stat(absolute);
-    if (!fileStat.isFile()) {
-      throw new Error(`Attachment path is not a file: ${absolute}`);
+  return result.data.files.map(file => ({
+    path: file.path,
+    name: file.name,
+    bytes: file.bytes
+  }));
+}
+
+export async function preflightFiles(
+  env: RuntimeEnv,
+  args: FilePreflightArgs
+): Promise<CommandResult<FilePreflightData>> {
+  const maxBytesPerFile = args.maxBytesPerFile ?? DEFAULT_MAX_BYTES_PER_FILE;
+  const maxTotalBytes = args.maxTotalBytes ?? DEFAULT_MAX_TOTAL_BYTES;
+  const files: FilePreflightFile[] = [];
+  const warnings: string[] = [];
+
+  for (const [index, inputPath] of args.paths.entries()) {
+    const fieldPath = `paths[${index}]`;
+    if (!isHostAbsolutePath(inputPath)) {
+      return filePreflightBlocker({
+        env,
+        status: "blocked",
+        kind: "upload_failed",
+        code: "file_path_not_absolute",
+        fieldPath,
+        message: `File attachment path must be absolute for the backend host: ${inputPath}`
+      });
     }
 
-    files.push({
-      path: absolute,
-      name: basenameForHostPath(absolute),
-      bytes: fileStat.size
+    const absolute = resolveForHostPath(inputPath);
+    let fileStat: Awaited<ReturnType<typeof stat>>;
+    try {
+      fileStat = await stat(absolute);
+    } catch (error) {
+      if (isNodeError(error) && error.code === "ENOENT") {
+        return filePreflightBlocker({
+          env,
+          status: "not_found",
+          kind: "not_found",
+          code: "file_missing",
+          fieldPath,
+          message: `File attachment path does not exist: ${absolute}`
+        });
+      }
+      if (isNodeError(error) && (error.code === "EACCES" || error.code === "EPERM")) {
+        return filePreflightBlocker({
+          env,
+          status: "blocked",
+          kind: "permission",
+          code: "file_not_readable",
+          fieldPath,
+          message: `File attachment path is not readable: ${absolute}`
+        });
+      }
+      return resultError(error instanceof Error ? error : new Error(String(error)), filePreflightContext(env));
+    }
+
+    if (!fileStat.isFile()) {
+      return filePreflightBlocker({
+        env,
+        status: "blocked",
+        kind: "upload_failed",
+        code: fileStat.isDirectory() ? "file_path_is_directory" : "file_path_not_file",
+        fieldPath,
+        message: `File attachment path is not a file: ${absolute}`
+      });
+    }
+
+    try {
+      await access(absolute, constants.R_OK);
+    } catch (error) {
+      return filePreflightBlocker({
+        env,
+        status: "blocked",
+        kind: "permission",
+        code: "file_not_readable",
+        fieldPath,
+        message: `File attachment path is not readable: ${absolute}`
+      });
+    }
+
+    if (fileStat.size > maxBytesPerFile) {
+      return filePreflightBlocker({
+        env,
+        status: "blocked",
+        kind: "upload_failed",
+        code: "file_too_large",
+        fieldPath,
+        message: `File attachment exceeds the configured per-file preflight limit: ${absolute} (${fileStat.size}/${maxBytesPerFile} bytes)`
+      });
+    }
+
+    const metadata = fileMetadata(absolute, fileStat.size);
+    files.push(metadata);
+  }
+
+  const totalBytes = files.reduce((sum, file) => sum + file.bytes, 0);
+  if (totalBytes > maxTotalBytes) {
+    return filePreflightBlocker({
+      env,
+      status: "blocked",
+      kind: "upload_failed",
+      code: "file_total_bytes_exceeded",
+      fieldPath: "paths",
+      message: `File attachments exceed the configured total preflight limit: ${totalBytes}/${maxTotalBytes} bytes`
     });
   }
 
-  return files;
+  collectFilePreflightWarnings(files, warnings);
+  return resultOk({ files, totalBytes }, filePreflightContext(env), warnings);
 }
 
 export async function attachFiles(
   env: RuntimeEnv,
   args: AttachFilesArgs
 ): Promise<CommandResult<AttachFilesData>> {
+  const preflight = await preflightFiles(env, { paths: args.paths });
+  if (!preflight.ok || preflight.data === undefined) {
+    return preflight as CommandResult<AttachFilesData>;
+  }
+
   const boot = await ensurePage(env);
   if (!boot.ok) {
     return boot as CommandResult<AttachFilesData>;
@@ -64,7 +175,11 @@ export async function attachFiles(
   const page = env.page!;
 
   try {
-    const files = await validateAttachPaths(args.paths);
+    const files = preflight.data.files.map(file => ({
+      path: file.path,
+      name: file.name,
+      bytes: file.bytes
+    }));
 
     await uploadFiles(page, files, args.timeoutMs ?? 30000);
 
@@ -100,7 +215,7 @@ export async function attachFiles(
         context: await contextFromPage(page)
       };
     }
-    return resultOk({ files }, await contextFromPage(page));
+    return resultOk({ files }, await contextFromPage(page), preflight.warnings);
   } catch (error) {
     if (isUploadBridgeBlocker(error)) {
       return {
@@ -120,6 +235,136 @@ export async function attachFiles(
     }
     return resultError(error instanceof Error ? error : new Error(String(error)), await contextFromPage(page));
   }
+}
+
+type FilePreflightBlockerArgs = {
+  env: RuntimeEnv;
+  status: CommandStatus;
+  kind: BlockerKind;
+  code: string;
+  fieldPath: string;
+  message: string;
+};
+
+function filePreflightBlocker(args: FilePreflightBlockerArgs): CommandResult<FilePreflightData> {
+  return {
+    ok: false,
+    status: args.status,
+    warnings: [],
+    blocker: {
+      kind: args.kind,
+      code: args.code,
+      fieldPath: args.fieldPath,
+      message: args.message,
+      resumable: true
+    },
+    context: filePreflightContext(args.env)
+  };
+}
+
+function filePreflightContext(env: RuntimeEnv) {
+  return { timestamp: (env.now?.() ?? new Date()).toISOString() };
+}
+
+function fileMetadata(absolute: string, bytes: number): FilePreflightFile {
+  const extension = extensionForHostPath(absolute);
+  const { mimeType, category } = guessFileType(extension);
+  return {
+    path: absolute,
+    name: basenameForHostPath(absolute),
+    bytes,
+    extension,
+    mimeType,
+    category
+  };
+}
+
+function extensionForHostPath(value: string): string {
+  return process.platform === "win32"
+    ? path.win32.extname(value).toLowerCase()
+    : path.posix.extname(value).toLowerCase();
+}
+
+function collectFilePreflightWarnings(files: FilePreflightFile[], warnings: string[]): void {
+  const byPath = new Map<string, number>();
+  const byName = new Map<string, number>();
+
+  for (const file of files) {
+    if (file.bytes === 0) {
+      warnings.push(`Zero-byte file will be attached if ChatGPT accepts it: ${file.name}`);
+    }
+
+    const pathCount = (byPath.get(file.path) ?? 0) + 1;
+    byPath.set(file.path, pathCount);
+    if (pathCount === 2) {
+      warnings.push(`Duplicate resolved file path requested: ${file.path}`);
+    }
+
+    const normalizedName = file.name.toLocaleLowerCase();
+    const nameCount = (byName.get(normalizedName) ?? 0) + 1;
+    byName.set(normalizedName, nameCount);
+    if (nameCount === 2) {
+      warnings.push(`Duplicate file basename requested: ${file.name}`);
+    }
+  }
+}
+
+function guessFileType(extension: string): { mimeType: string; category: FileCategory } {
+  switch (extension) {
+    case ".txt":
+      return { mimeType: "text/plain", category: "text" };
+    case ".md":
+    case ".markdown":
+      return { mimeType: "text/markdown", category: "text" };
+    case ".csv":
+      return { mimeType: "text/csv", category: "spreadsheet" };
+    case ".tsv":
+      return { mimeType: "text/tab-separated-values", category: "spreadsheet" };
+    case ".json":
+      return { mimeType: "application/json", category: "data" };
+    case ".jsonl":
+    case ".ndjson":
+      return { mimeType: "application/x-ndjson", category: "data" };
+    case ".pdf":
+      return { mimeType: "application/pdf", category: "document" };
+    case ".doc":
+      return { mimeType: "application/msword", category: "document" };
+    case ".docx":
+      return { mimeType: "application/vnd.openxmlformats-officedocument.wordprocessingml.document", category: "document" };
+    case ".xls":
+      return { mimeType: "application/vnd.ms-excel", category: "spreadsheet" };
+    case ".xlsx":
+      return { mimeType: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", category: "spreadsheet" };
+    case ".png":
+      return { mimeType: "image/png", category: "image" };
+    case ".jpg":
+    case ".jpeg":
+      return { mimeType: "image/jpeg", category: "image" };
+    case ".gif":
+      return { mimeType: "image/gif", category: "image" };
+    case ".webp":
+      return { mimeType: "image/webp", category: "image" };
+    case ".svg":
+      return { mimeType: "image/svg+xml", category: "image" };
+    case ".mp3":
+      return { mimeType: "audio/mpeg", category: "audio" };
+    case ".wav":
+      return { mimeType: "audio/wav", category: "audio" };
+    case ".mp4":
+      return { mimeType: "video/mp4", category: "video" };
+    case ".mov":
+      return { mimeType: "video/quicktime", category: "video" };
+    case ".zip":
+      return { mimeType: "application/zip", category: "archive" };
+    case ".gz":
+      return { mimeType: "application/gzip", category: "archive" };
+    default:
+      return { mimeType: guessMimeType(extension), category: "unknown" };
+  }
+}
+
+function isNodeError(error: unknown): error is NodeJS.ErrnoException {
+  return error instanceof Error && "code" in error;
 }
 
 async function waitForAttachedFilesReady(

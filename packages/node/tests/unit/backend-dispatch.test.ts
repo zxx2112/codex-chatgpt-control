@@ -1,4 +1,4 @@
-import { mkdtemp } from "node:fs/promises";
+import { mkdtemp, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
@@ -43,6 +43,7 @@ describe("backend dispatch", () => {
     });
     expect((capabilities.result as { commands: string[] }).commands).toContain("runner.run");
     expect((capabilities.result as { commands: string[] }).commands).toContain("responses.create");
+    expect((capabilities.result as { commands: string[] }).commands).toContain("files.preflight");
   });
 
   it("dispatches runner.plan through the public ChatGPT client", async () => {
@@ -138,9 +139,11 @@ describe("backend dispatch", () => {
 
   it("dispatches doctor checks as typed command results", async () => {
     const reportDir = await mkdtemp(join(tmpdir(), "chatgpt-backend-doctor-"));
+    const file = join(reportDir, "spec.md");
+    await writeFile(file, "hello");
     const response = await send(deterministicSession(), "doctor", {
       check: ["bridge", "upload", "localization", "reports", "file_preflight"],
-      files: ["/absolute/path/spec.md"],
+      files: [file],
       report: { destDir: reportDir }
     });
 
@@ -165,10 +168,43 @@ describe("backend dispatch", () => {
             status: "ok"
           },
           file_preflight: {
-            status: "unsupported",
-            code: "file_preflight_deferred"
+            status: "ok",
+            details: {
+              pathCount: 1,
+              totalBytes: 5
+            }
           }
         }
+      }
+    });
+  });
+
+  it("dispatches files.preflight without requiring browser state", async () => {
+    const dir = await mkdtemp(join(tmpdir(), "chatgpt-backend-file-preflight-"));
+    const file = join(dir, "spec.md");
+    await writeFile(file, "hello");
+
+    const response = await send(deterministicSession(), "files.preflight", {
+      paths: [file]
+    });
+
+    expect(response.ok).toBe(true);
+    expectOk(response);
+    expect(response.result).toMatchObject({
+      ok: true,
+      status: "ok",
+      data: {
+        totalBytes: 5,
+        files: [
+          {
+            path: file,
+            name: "spec.md",
+            bytes: 5,
+            extension: ".md",
+            mimeType: "text/markdown",
+            category: "text"
+          }
+        ]
       }
     });
   });

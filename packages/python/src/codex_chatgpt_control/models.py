@@ -249,6 +249,7 @@ class FilePreflightFile(WireModel):
     extension: str
     mime_type: str = Field(alias="mimeType")
     category: str
+    sha256: str | None = None
 
 
 class FilePreflightData(WireModel):

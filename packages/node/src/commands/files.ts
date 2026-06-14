@@ -1,5 +1,6 @@
 import { access, readFile, stat } from "node:fs/promises";
 import { constants } from "node:fs";
+import { createHash } from "node:crypto";
 import path from "node:path";
 import { downloadLatestArtifact, locatorCountWithTimeout } from "./artifacts.js";
 import { waitForDownloadFromClick } from "../browser/downloads.js";
@@ -12,6 +13,7 @@ import type {
   AttachFilesArgs,
   AttachFilesData,
   BlockerKind,
+  BrowserInputDiagnostic,
   CommandStatus,
   CommandResult,
   DownloadedFile,
@@ -138,7 +140,18 @@ export async function preflightFiles(
       });
     }
 
-    const metadata = fileMetadata(absolute, fileStat.size);
+    if (fileStat.size === 0) {
+      return filePreflightBlocker({
+        env,
+        status: "blocked",
+        kind: "upload_failed",
+        code: "file_empty",
+        fieldPath,
+        message: `File attachment path is zero bytes and ChatGPT rejects empty attachments: ${absolute}`
+      });
+    }
+
+    const metadata = await fileMetadata(absolute, fileStat.size, args.includeHashes === true);
     files.push(metadata);
   }
 
@@ -162,7 +175,11 @@ export async function attachFiles(
   env: RuntimeEnv,
   args: AttachFilesArgs
 ): Promise<CommandResult<AttachFilesData>> {
-  const preflight = await preflightFiles(env, { paths: args.paths });
+  const preflightArgs: FilePreflightArgs = { paths: args.paths };
+  if (args.includeDiagnostics === true && args.includeHashes !== undefined) {
+    preflightArgs.includeHashes = args.includeHashes;
+  }
+  const preflight = await preflightFiles(env, preflightArgs);
   if (!preflight.ok || preflight.data === undefined) {
     return preflight as CommandResult<AttachFilesData>;
   }
@@ -182,6 +199,9 @@ export async function attachFiles(
     }));
 
     await uploadFiles(page, files, args.timeoutMs ?? 30000);
+    const browserInput = args.includeDiagnostics === true
+      ? await readBrowserInputDiagnostic(page).catch(() => undefined)
+      : undefined;
 
     await page.waitForTimeout?.(args.timeoutMs === undefined ? 1000 : Math.min(args.timeoutMs, 3000));
     const readiness = await waitForAttachedFilesReady(page, files, args.timeoutMs ?? 30000);
@@ -215,7 +235,14 @@ export async function attachFiles(
         context: await contextFromPage(page)
       };
     }
-    return resultOk({ files }, await contextFromPage(page), preflight.warnings);
+    const data: AttachFilesData = { files };
+    if (args.includeDiagnostics === true) {
+      data.diagnostics = { preflight: preflight.data };
+      if (browserInput !== undefined) {
+        data.diagnostics.browserInput = browserInput;
+      }
+    }
+    return resultOk(data, await contextFromPage(page), preflight.warnings);
   } catch (error) {
     if (isUploadBridgeBlocker(error)) {
       return {
@@ -266,10 +293,10 @@ function filePreflightContext(env: RuntimeEnv) {
   return { timestamp: (env.now?.() ?? new Date()).toISOString() };
 }
 
-function fileMetadata(absolute: string, bytes: number): FilePreflightFile {
+async function fileMetadata(absolute: string, bytes: number, includeHash = false): Promise<FilePreflightFile> {
   const extension = extensionForHostPath(absolute);
   const { mimeType, category } = guessFileType(extension);
-  return {
+  const metadata: FilePreflightFile = {
     path: absolute,
     name: basenameForHostPath(absolute),
     bytes,
@@ -277,6 +304,10 @@ function fileMetadata(absolute: string, bytes: number): FilePreflightFile {
     mimeType,
     category
   };
+  if (includeHash) {
+    metadata.sha256 = createHash("sha256").update(await readFile(absolute)).digest("hex");
+  }
+  return metadata;
 }
 
 function extensionForHostPath(value: string): string {
@@ -290,10 +321,6 @@ function collectFilePreflightWarnings(files: FilePreflightFile[], warnings: stri
   const byName = new Map<string, number>();
 
   for (const file of files) {
-    if (file.bytes === 0) {
-      warnings.push(`Zero-byte file will be attached if ChatGPT accepts it: ${file.name}`);
-    }
-
     const pathCount = (byPath.get(file.path) ?? 0) + 1;
     byPath.set(file.path, pathCount);
     if (pathCount === 2) {
@@ -675,6 +702,36 @@ async function setHiddenFileInput(page: RuntimeEnv["page"], files: AttachedFile[
     return;
   }
   await input.setInputFiles(files.map(file => file.path));
+}
+
+async function readBrowserInputDiagnostic(page: PageLike): Promise<BrowserInputDiagnostic | undefined> {
+  if (typeof page.evaluate !== "function") {
+    return undefined;
+  }
+
+  return page.evaluate(() => {
+    const input = (document.querySelector("#upload-files")
+      || document.querySelector("input[type='file']:not([accept='image/*'])")
+      || document.querySelector("input[type='file']")) as HTMLInputElement | null;
+    if (!input) {
+      return { files: [] };
+    }
+    return {
+      files: Array.from(input.files ?? []).map(file => {
+        const diagnostic: { name: string; size: number; type?: string; lastModified?: number } = {
+          name: file.name,
+          size: file.size
+        };
+        if (file.type.length > 0) {
+          diagnostic.type = file.type;
+        }
+        if (file.lastModified !== 0) {
+          diagnostic.lastModified = file.lastModified;
+        }
+        return diagnostic;
+      })
+    };
+  });
 }
 
 async function ensurePage(env: RuntimeEnv): Promise<CommandResult<unknown>> {

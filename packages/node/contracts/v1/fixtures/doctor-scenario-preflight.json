@@ -71,8 +71,19 @@
         "localization": {
           "details": {
             "englishCanonicalPresent": true,
-            "labelCandidateCount": 1070,
+            "labelCandidateCount": 1542,
+            "missingModeOptionIds": [],
             "missingToolIds": [],
+            "modeOptionIds": [
+              "latest",
+              "instant",
+              "thinking",
+              "extended",
+              "medium",
+              "high",
+              "extraHigh",
+              "pro"
+            ],
             "pageAvailable": false,
             "requiredKeysMissing": [],
             "runtimeSelectorCoverage": "registry_only_stage_2",

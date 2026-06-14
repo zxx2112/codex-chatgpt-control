@@ -168,6 +168,24 @@ class CompleteModelTests(unittest.TestCase):
         self.assertEqual(data.files[0].mime_type, "text/markdown")
         self.assertIn("mimeType", data.to_wire()["files"][0])
 
+        hashed = FilePreflightData.from_wire({
+            "files": [{
+                "path": "/tmp/spec.md",
+                "name": "spec.md",
+                "bytes": 5,
+                "extension": ".md",
+                "mimeType": "text/markdown",
+                "category": "text",
+                "sha256": "2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824",
+            }],
+            "totalBytes": 5,
+        })
+        self.assertEqual(
+            hashed.files[0].sha256,
+            "2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824",
+        )
+        self.assertIn("sha256", hashed.to_wire()["files"][0])
+
     def test_project_sources_plan_add_fixture_parses_aliases(self) -> None:
         result = CommandResult.from_wire(load_json("project-sources-plan-add.json")["result"])
         data = ProjectSourcesAddPlanData.from_wire(result.data)

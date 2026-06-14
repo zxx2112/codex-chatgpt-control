@@ -255,7 +255,17 @@ function primitiveArgs(name: string): Record<string, string> {
   if (name === "artifacts.downloadLatest") return { destDir: "download destination directory", prefer: "download_control or visible_image_source" };
   if (name === "response.copy") return { prefer: "clipboard or dom", format: "markdown, normalized_text, visible_text, html, blocks, or all" };
   if (name.startsWith("threads.search")) return { query: "history search query" };
-  if (name === "files.preflight") return { paths: "absolute local file paths", maxBytesPerFile: "optional local per-file byte limit", maxTotalBytes: "optional local total byte limit" };
+  if (name === "files.preflight") return {
+    paths: "absolute local file paths",
+    maxBytesPerFile: "optional local per-file byte limit",
+    maxTotalBytes: "optional local total byte limit",
+    includeHashes: "optional SHA-256 metadata for diagnostics; file contents are not returned"
+  };
+  if (name === "files.attach") return {
+    paths: "absolute local file paths",
+    includeDiagnostics: "optional preflight and browser input file-size metadata",
+    includeHashes: "optional SHA-256 metadata inside diagnostics; file contents are not returned"
+  };
   if (name.startsWith("files.attach")) return { paths: "absolute local file paths" };
   if (name === "projects.sources.list") return { projectUrl: "ChatGPT Project URL such as https://chatgpt.com/g/g-p-.../project", existingTab: "optional exact existing-tab policy", timeoutMs: "optional browser timeout" };
   if (name === "projects.sources.planAdd") return { projectUrl: "ChatGPT Project URL", files: "explicit absolute local file paths", batchSize: "optional upload batch size" };
@@ -284,7 +294,8 @@ function primitiveExamples(name: string): string[] {
   }
   if (name === "files.preflight") {
     return [
-      `await chatgpt.files.preflight({ paths: ["/absolute/host/path.md"] });`
+      `await chatgpt.files.preflight({ paths: ["/absolute/host/path.md"] });`,
+      `await chatgpt.files.preflight({ paths: ["/absolute/host/path.md"], includeHashes: true });`
     ];
   }
   if (name === "files.attach") {

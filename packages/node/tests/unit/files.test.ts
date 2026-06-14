@@ -1,5 +1,6 @@
 import { access, chmod, mkdir, mkdtemp, stat, writeFile } from "node:fs/promises";
 import { constants } from "node:fs";
+import { createHash } from "node:crypto";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import process from "node:process";
@@ -75,7 +76,24 @@ describe("preflightFiles", () => {
     }
   });
 
-  it("warns for duplicate basenames, duplicate resolved paths, and zero-byte files", async () => {
+  it("blocks zero-byte files before any browser upload attempt", async () => {
+    const dir = await mkdtemp(join(tmpdir(), "chatgpt-control-preflight-empty-"));
+    const file = join(dir, "empty.txt");
+    await writeFile(file, "");
+
+    const result = await preflightFiles({}, { paths: [file] });
+
+    expect(result.ok).toBe(false);
+    expect(result.status).toBe("blocked");
+    expect(result.blocker).toMatchObject({
+      kind: "upload_failed",
+      code: "file_empty",
+      fieldPath: "paths[0]"
+    });
+    expect(result.blocker?.message).toContain("zero bytes");
+  });
+
+  it("warns for duplicate basenames and duplicate resolved paths", async () => {
     const dir = await mkdtemp(join(tmpdir(), "chatgpt-control-preflight-warnings-"));
     const nested = join(dir, "nested");
     const other = join(dir, "other");
@@ -85,12 +103,12 @@ describe("preflightFiles", () => {
     const duplicatePath = join(nested, "..", "nested", "notes.md");
     const duplicateName = join(other, "notes.md");
     await writeFile(primary, "hello");
-    await writeFile(duplicateName, "");
+    await writeFile(duplicateName, "world");
 
     const result = await preflightFiles({}, { paths: [primary, duplicatePath, duplicateName] });
 
     expect(result.ok).toBe(true);
-    expect(result.data?.totalBytes).toBe(10);
+    expect(result.data?.totalBytes).toBe(15);
     expect(result.data?.files[0]).toMatchObject({
       path: primary,
       name: "notes.md",
@@ -101,9 +119,26 @@ describe("preflightFiles", () => {
     });
     expect(result.warnings).toEqual(expect.arrayContaining([
       expect.stringContaining("Duplicate resolved file path"),
-      expect.stringContaining("Duplicate file basename"),
-      expect.stringContaining("Zero-byte file")
+      expect.stringContaining("Duplicate file basename")
     ]));
+    expect(result.warnings.join("\n")).not.toContain("Zero-byte file");
+  });
+
+  it("can include SHA-256 metadata when requested for upload diagnostics", async () => {
+    const dir = await mkdtemp(join(tmpdir(), "chatgpt-control-preflight-digest-"));
+    const file = join(dir, "digest.txt");
+    const body = "digest me";
+    await writeFile(file, body);
+
+    const result = await preflightFiles({}, { paths: [file], includeHashes: true });
+
+    expect(result.ok).toBe(true);
+    expect(result.data?.files[0]).toMatchObject({
+      path: file,
+      name: "digest.txt",
+      bytes: body.length,
+      sha256: createHash("sha256").update(body).digest("hex")
+    });
   });
 
   it("enforces per-file and total-byte limits", async () => {
@@ -260,6 +295,69 @@ describe("attachFiles", () => {
     expect(plusClicked).toBe(true);
     expect(menuClicked).toBe(true);
     expect(uploadedPaths).toEqual([file]);
+  });
+
+  it("can return preflight and browser-side file-size diagnostics", async () => {
+    const dir = await mkdtemp(join(tmpdir(), "chatgpt-control-attach-diagnostics-"));
+    const file = join(dir, "notes.txt");
+    await writeFile(file, "hello");
+
+    let uploadedPaths: string[] = [];
+    const visibleInput: LocatorLike = {
+      count: async () => 1,
+      isVisible: async () => true,
+      click: async () => {}
+    };
+    const messageLocator: LocatorLike = {
+      count: async () => 0
+    };
+
+    const page: PageLike = {
+      locator: (selector: string) => {
+        if (selector === "#upload-files") return visibleInput;
+        if (selector.includes("data-message-author-role")) return messageLocator;
+        return { count: async () => 0 };
+      },
+      waitForEvent: async () => ({
+        isMultiple: async () => true,
+        setFiles: async (paths: string[]) => {
+          uploadedPaths = paths;
+        }
+      }),
+      evaluate: async <T, A = unknown>(_fn: (arg: A) => T | Promise<T>, arg?: A): Promise<T> => {
+        if (Array.isArray(arg)) {
+          return {
+            files: [{ name: "notes.txt", visible: true }],
+            processing: false
+          } as T;
+        }
+        return {
+          files: [{ name: "notes.txt", size: 5, type: "text/plain", lastModified: 123 }]
+        } as T;
+      },
+      waitForTimeout: async () => {},
+      title: async () => "ChatGPT",
+      url: () => "https://chatgpt.com/"
+    };
+
+    const result = await attachFiles({ page }, {
+      paths: [file],
+      includeDiagnostics: true,
+      includeHashes: true
+    });
+
+    expect(result.ok).toBe(true);
+    expect(uploadedPaths).toEqual([file]);
+    expect(result.data?.diagnostics?.preflight.files[0]).toMatchObject({
+      name: "notes.txt",
+      bytes: 5,
+      sha256: createHash("sha256").update("hello").digest("hex")
+    });
+    expect(result.data?.diagnostics?.browserInput?.files[0]).toMatchObject({
+      name: "notes.txt",
+      size: 5,
+      type: "text/plain"
+    });
   });
 
   it("waits for attached files to finish processing before returning success", async () => {

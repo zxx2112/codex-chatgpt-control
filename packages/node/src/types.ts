@@ -356,6 +356,8 @@ export type AskReadData = {
 export type AttachFilesArgs = {
   paths: string[];
   timeoutMs?: number;
+  includeDiagnostics?: boolean;
+  includeHashes?: boolean;
 };
 
 export type AttachedFile = {
@@ -379,12 +381,14 @@ export type FilePreflightArgs = {
   paths: string[];
   maxBytesPerFile?: number;
   maxTotalBytes?: number;
+  includeHashes?: boolean;
 };
 
 export type FilePreflightFile = AttachedFile & {
   extension: string;
   mimeType: string;
   category: FileCategory;
+  sha256?: string;
 };
 
 export type FilePreflightData = {
@@ -394,6 +398,23 @@ export type FilePreflightData = {
 
 export type AttachFilesData = {
   files: AttachedFile[];
+  diagnostics?: FileUploadDiagnostics;
+};
+
+export type BrowserInputFileDiagnostic = {
+  name: string;
+  size: number;
+  type?: string;
+  lastModified?: number;
+};
+
+export type BrowserInputDiagnostic = {
+  files: BrowserInputFileDiagnostic[];
+};
+
+export type FileUploadDiagnostics = {
+  preflight: FilePreflightData;
+  browserInput?: BrowserInputDiagnostic;
 };
 
 export type ProjectSourceStatus =

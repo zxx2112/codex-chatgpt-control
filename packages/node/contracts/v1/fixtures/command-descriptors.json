@@ -779,6 +779,7 @@
     },
     {
       "args": {
+        "includeHashes": "optional SHA-256 metadata for diagnostics; file contents are not returned",
         "maxBytesPerFile": "optional local per-file byte limit",
         "maxTotalBytes": "optional local total byte limit",
         "paths": "absolute local file paths"
@@ -791,7 +792,8 @@
       "defaults": {},
       "defaultTimeoutMs": 30000,
       "examples": [
-        "await chatgpt.files.preflight({ paths: [\"/absolute/host/path.md\"] });"
+        "await chatgpt.files.preflight({ paths: [\"/absolute/host/path.md\"] });",
+        "await chatgpt.files.preflight({ paths: [\"/absolute/host/path.md\"], includeHashes: true });"
       ],
       "layer": "primitive",
       "name": "files.preflight",
@@ -801,6 +803,8 @@
     },
     {
       "args": {
+        "includeDiagnostics": "optional preflight and browser input file-size metadata",
+        "includeHashes": "optional SHA-256 metadata inside diagnostics; file contents are not returned",
         "paths": "absolute local file paths"
       },
       "blockers": [

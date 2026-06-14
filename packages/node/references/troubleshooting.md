@@ -90,6 +90,21 @@ Agent-facing remediation text should name both settings:
 
 Attachment paths are validated against the backend host's operating system. If a Windows-looking path is rejected on macOS/Linux, do not retry with the same string. Convert it to the backend host's real path, for example `/mnt/c/example/user/file.pdf` for a WSL/Linux backend. Drive-relative paths like `C:Users\you\file.pdf`, root-relative paths like `\tmp\file.pdf`, and empty or relative paths are always rejected.
 
+## Empty Or Stripped Attachments
+
+Zero-byte files are blocked by `files.preflight` before browser upload because
+ChatGPT rejects empty attachments with a generic help-center error. If a user
+reports that manual upload works but automated upload fails, compare local and
+browser-side metadata instead of guessing:
+
+1. Run `files.preflight({ paths, includeHashes: true })` and inspect `bytes`
+   plus `sha256` for the backend-visible file.
+2. Run `files.attach({ paths, includeDiagnostics: true, includeHashes: true })`
+   and inspect `data.diagnostics.browserInput.files[].size` when available.
+3. If preflight `bytes` is zero, investigate the source path, generation race,
+   cloud placeholder, or host/container path mapping. If preflight bytes are
+   nonzero but browser-side size is zero, investigate the Chrome handoff.
+
 ## Clipboard Unavailable
 
 `response.copy` falls back to DOM text extraction when the macOS system clipboard does not change.
@@ -144,6 +159,6 @@ Doctor also supports opt-in scenario checks:
 
 - `existing_tab`: claims only the requested already-open tab target by default and reports `existing_tab_not_found` / `existing_tab_ambiguous` diagnostics without opening a replacement tab unless `existingTab.ifMissing` explicitly allows that.
 - `artifacts`: verifies current-page artifact selector/download/asset support without requesting generation.
-- `file_preflight`: validates supplied local file paths without opening ChatGPT or attempting upload. It reports path count, total bytes, duplicate/zero-byte warnings, and extension-based MIME/category metadata; fatal local file problems map to the same structured blockers as `files.preflight`.
+- `file_preflight`: validates supplied local file paths without opening ChatGPT or attempting upload. It reports path count, total bytes, duplicate warnings, zero-byte blockers, and extension-based MIME/category metadata; fatal local file problems map to the same structured blockers as `files.preflight`.
 - `localization`: checks locale-label registry readiness and English canonical labels without changing the ChatGPT account language; it is not yet proof of full localized selector coverage.
 - `reports`: checks redacted-report policy and existing destination writability when possible without writing a report.

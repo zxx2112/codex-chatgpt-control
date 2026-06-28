@@ -651,7 +651,13 @@
       "summary": "Compose, submit, optionally wait, and optionally read."
     },
     {
-      "args": {},
+      "args": {
+        "mode": "normal or deep_research",
+        "pollMs": "optional polling interval",
+        "responseContent": "include for current behavior, metadata to omit assistant text and return chars/hash only",
+        "stableMs": "optional stability window before completion",
+        "timeoutMs": "optional wait timeout"
+      },
       "blockers": [
         "browser_bridge_unavailable",
         "login_required",

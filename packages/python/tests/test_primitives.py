@@ -32,7 +32,7 @@ class PrimitiveFacadeTests(unittest.TestCase):
             (lambda: chatgpt.messages.compose(text="hi"), "messages.compose", {"text": "hi"}),
             (lambda: chatgpt.messages.submit(text="hi"), "messages.submit", {"text": "hi"}),
             (lambda: chatgpt.messages.ask(text="hi"), "messages.ask", {"text": "hi"}),
-            (lambda: chatgpt.messages.wait(timeout_ms=100), "messages.wait", {"timeoutMs": 100}),
+            (lambda: chatgpt.messages.wait(timeout_ms=100, response_content="metadata"), "messages.wait", {"timeoutMs": 100, "responseContent": "metadata"}),
             (lambda: chatgpt.messages.read_latest(format="markdown"), "messages.readLatest", {"format": "markdown"}),
             (lambda: chatgpt.messages.wait_and_read(format="markdown"), "messages.waitAndRead", {"format": "markdown"}),
             (lambda: chatgpt.artifacts.list_latest(kind="image"), "artifacts.listLatest", {"kind": "image"}),

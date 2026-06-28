@@ -6135,6 +6135,9 @@ function isNodeError2(error) {
   return error instanceof Error && "code" in error;
 }
 
+// src/commands/messages.ts
+import { createHash as createHash2 } from "node:crypto";
+
 // src/dom/generation-state.ts
 var EMPTY_GENERATION_STATE = {
   active: false,
@@ -6607,17 +6610,14 @@ async function waitForMessage(env, args = {}) {
       hasResponseActions: await responseActionsFromProbe(responseActionsProbe(page, deadline, { timeoutMs: probeTimeoutMs }), waitWarnings)
     };
     if (targetReached && snapshot.generation.stopped && latestText.length > 0) {
+      const data = waitDataFromText(args, false, latestText, latestAssistantCount, Date.now() - started);
       return withCommandOutputText({
         ok: false,
         status: "partial",
-        data: {
-          complete: false,
-          responseText: latestText,
-          assistantTurnCount: latestAssistantCount,
-          elapsedMs: Date.now() - started
-        },
+        data,
         warnings: [
           ...waitWarnings,
+          ...responseContentWarnings(args, false),
           "ChatGPT generation appears to have been stopped or interrupted before completion.",
           ...snapshot.generation.signals.map((signal) => `Generation state signal: ${signal}`)
         ],
@@ -6625,25 +6625,22 @@ async function waitForMessage(env, args = {}) {
       });
     }
     if (targetReached && isResponseComplete(snapshot)) {
+      const data = waitDataFromText(args, true, latestText, latestAssistantCount, Date.now() - started);
       return withCommandOutputText(resultOk(
-        { complete: true, responseText: latestText, assistantTurnCount: latestAssistantCount, elapsedMs: Date.now() - started },
+        data,
         await contextFromPage(page),
-        [...waitWarnings]
+        [...waitWarnings, ...responseContentWarnings(args, true)]
       ));
     }
     await sleep2(page, pollMs);
   }
   if (lastTargetText.length > 0) {
+    const data = waitDataFromText(args, false, lastTargetText, latestAssistantCount, Date.now() - started);
     return withCommandOutputText({
       ok: false,
       status: "partial",
-      data: {
-        complete: false,
-        responseText: lastTargetText,
-        assistantTurnCount: latestAssistantCount,
-        elapsedMs: Date.now() - started
-      },
-      warnings: [...waitWarnings, "Timed out after receiving partial assistant text."],
+      data,
+      warnings: [...waitWarnings, ...responseContentWarnings(args, false), "Timed out after receiving partial assistant text."],
       context: await contextFromPage(page)
     });
   }
@@ -6658,6 +6655,27 @@ async function waitForMessage(env, args = {}) {
     },
     context: await contextFromPage(page)
   };
+}
+function waitDataFromText(args, complete, responseText, assistantTurnCount, elapsedMs) {
+  const data = {
+    complete,
+    assistantTurnCount,
+    elapsedMs
+  };
+  if (args.responseContent === "metadata") {
+    data.responseContent = "metadata";
+    data.responseChars = responseText.length;
+    data.responseSha256 = createHash2("sha256").update(responseText).digest("hex");
+    return data;
+  }
+  data.responseText = responseText;
+  return data;
+}
+function responseContentWarnings(args, complete) {
+  if (args.responseContent !== "metadata") return [];
+  return [
+    complete ? "Assistant response text was omitted because responseContent is metadata; call readLatest to capture the completed answer." : "Partial assistant text was omitted because responseContent is metadata; call wait again on the same thread or readLatest after completion."
+  ];
 }
 async function pageStateFromProbe(probe, warnings) {
   const result = await probe;
@@ -7747,7 +7765,7 @@ function isSafeControlStringKey(key) {
 }
 
 // src/safety/untrusted-output.ts
-import { createHash as createHash2, randomUUID } from "node:crypto";
+import { createHash as createHash3, randomUUID } from "node:crypto";
 import { createReadStream } from "node:fs";
 import { link, mkdir as mkdir3, readFile as readFile2, stat as stat5, unlink, writeFile as writeFile2 } from "node:fs/promises";
 import { dirname } from "node:path";
@@ -7820,10 +7838,10 @@ function normalizePromptForIntegrity(prompt) {
   return prompt.replace(/\r\n?/g, "\n").split("\n").map((line) => line.replace(/[ \t]+$/g, "")).filter((line) => line.trim().length > 0).join("\n");
 }
 function sha256Text(text) {
-  return createHash2("sha256").update(text).digest("hex");
+  return createHash3("sha256").update(text).digest("hex");
 }
 async function sha256File(path3) {
-  const hash = createHash2("sha256");
+  const hash = createHash3("sha256");
   let bytes = 0;
   await new Promise((resolve3, reject) => {
     const stream = createReadStream(path3);
@@ -8426,6 +8444,13 @@ function reportArgs(name) {
   return { result: "CommandResult to persist", destDir: "optional report directory" };
 }
 function primitiveArgs(name) {
+  if (name === "messages.wait") return {
+    timeoutMs: "optional wait timeout",
+    stableMs: "optional stability window before completion",
+    pollMs: "optional polling interval",
+    mode: "normal or deep_research",
+    responseContent: "include for current behavior, metadata to omit assistant text and return chars/hash only"
+  };
   if (name === "messages.readLatest") return { role: "assistant or user", format: "markdown, normalized_text, visible_text, html, blocks, or all" };
   if (name === "artifacts.listLatest") return { kind: "artifact kind; currently image", max: "maximum artifacts to return" };
   if (name === "artifacts.wait") return { kind: "artifact kind; currently image", afterArtifactCount: "baseline artifact count", requireDownload: "wait until a download affordance is visible" };

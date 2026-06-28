@@ -17,7 +17,7 @@
         "target": {
           "bytes": 335,
           "path": "/tmp/codex-chatgpt-control/reports/contract-fixtures/fixed-contract-report.json",
-          "sha256": "019c250aafc2ca9d5087acc223a0bacf7cae1538c9b0978239bda575a734d920"
+          "sha256": "e7c32e0911344d93330fd497a67985b7ee4adb5d78fb6b1fb18aed6133693ee1"
         }
       },
       "metaPath": "/tmp/codex-chatgpt-control/reports/contract-fixtures/fixed-contract-report.json.meta.json",

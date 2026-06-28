@@ -29,6 +29,8 @@ Wire fields stay TypeScript-compatible. Python exposes idiomatic aliases:
 
 Incomplete response capture is also shared contract behavior. Python must preserve `status == "partial"`, `output_text`, warnings, and any nested `data.captureLimit` dictionaries exactly as the TypeScript backend returns them. `partial` is not a protocol error: callers should inspect `data.complete` and run another wait/read on the same thread when they need final output.
 
+For long-answer polling, Python forwards `response_content="metadata"` to the shared wire field `responseContent: "metadata"` on `messages.wait`. The TypeScript backend then omits assistant text from wait results and returns compact metadata such as `data.responseChars` and `data.responseSha256`; Python must preserve those fields without trying to reconstruct omitted content.
+
 Generated-image behavior stays owned by the TypeScript runtime. Python exposes
 the same backend commands through `chatgpt.artifacts.list_latest(...)`,
 `chatgpt.artifacts.wait(...)`, and `chatgpt.artifacts.download_latest(...)`.

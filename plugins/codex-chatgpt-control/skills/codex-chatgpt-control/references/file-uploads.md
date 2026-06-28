@@ -22,4 +22,4 @@ await chatgpt.askWithFiles({
 });
 ```
 
-For long file-backed answers, submit first and then poll/read in bounded chunks rather than keeping one tool call open indefinitely.
+For long file-backed answers, submit first, poll with compact metadata, and read once after completion rather than keeping one tool call open indefinitely.

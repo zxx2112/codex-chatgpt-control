@@ -17,7 +17,7 @@ This skill is a thin workflow over the `codex-chatgpt-control` plugin. Use the s
 - Prefer a fresh thread unless the user asked to continue a specific ChatGPT thread.
 - Return Markdown by default. Use redacted reports by default; raw prompt/response content is opt-in only.
 - Treat ChatGPT Pro output as another model's judgment, not verified truth. Verify current, legal, medical, financial, or high-stakes claims with primary sources.
-- Keep each Codex tool call bounded. Submit the prompt under Pro first, then poll/read in chunks.
+- Keep each Codex tool call bounded. Submit the prompt under Pro first, poll with compact metadata, then read once after completion.
 
 ## Runtime Loader
 
@@ -52,7 +52,8 @@ const TOOL_CALL_SAFE_WAIT = {
   timeoutMs: 90_000,
   stableMs: 2_000,
   pollMs: 750,
-  mode: "deep_research"
+  mode: "deep_research",
+  responseContent: "metadata"
 };
 
 const pro = chatgpt.agent({
@@ -86,22 +87,22 @@ if (!submitted.ok || modeStep?.ok === false) {
     interruptions: submitted.interruptions
   }, null, 2));
 } else {
-  const read = await chatgpt.messages.waitAndRead({
-    ...TOOL_CALL_SAFE_WAIT,
-    role: "assistant",
-    format: "markdown"
-  });
+  const wait = await chatgpt.messages.wait(TOOL_CALL_SAFE_WAIT);
 
-  if (!read.ok) {
+  if (!wait.ok) {
     console.log(JSON.stringify({
       status: "submitted_wait_pending",
-      message: "Prompt is already submitted. Do not resubmit; run messages.waitAndRead again against this same thread.",
+      message: "Prompt is already submitted. Do not resubmit; run messages.wait again against this same thread.",
       thread: submitted.state?.thread ?? submitted.data?.thread,
       modeStep,
-      read
+      wait
     }, null, 2));
   } else {
-    console.log(read.data?.responseText ?? "");
+    const read = await chatgpt.messages.readLatest({
+      role: "assistant",
+      format: "markdown"
+    });
+    console.log(read.ok ? read.data?.responseText ?? read.output_text ?? "" : JSON.stringify(read, null, 2));
   }
 }
 ```
@@ -125,7 +126,7 @@ const submitted = await chatgpt.runner.run(pro, {
 });
 ```
 
-Use the same submit-then-poll pattern as Quick Consult. File-backed Pro answers can run longer than one Codex tool call.
+Use the same submit-then-poll pattern as Quick Consult. File-backed Pro answers can run longer than one Codex tool call, so poll with `messages.wait({ responseContent: "metadata", ... })` and read the answer once after completion.
 
 ## Continue A Known Thread
 

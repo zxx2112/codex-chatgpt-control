@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { readPageState, type PageState } from "../browser/page-state.js";
 import { resultError, resultOk } from "../errors.js";
 import { EMPTY_GENERATION_STATE, latestAssistantTurnHasResponseActions, readAssistantGenerationState, type AssistantGenerationState } from "../dom/generation-state.js";
@@ -391,17 +392,14 @@ export async function waitForMessage(
     };
 
     if (targetReached && snapshot.generation.stopped && latestText.length > 0) {
+      const data = waitDataFromText(args, false, latestText, latestAssistantCount, Date.now() - started);
       return withCommandOutputText({
         ok: false,
         status: "partial",
-        data: {
-          complete: false,
-          responseText: latestText,
-          assistantTurnCount: latestAssistantCount,
-          elapsedMs: Date.now() - started
-        },
+        data,
         warnings: [
           ...waitWarnings,
+          ...responseContentWarnings(args, false),
           "ChatGPT generation appears to have been stopped or interrupted before completion.",
           ...snapshot.generation.signals.map(signal => `Generation state signal: ${signal}`)
         ],
@@ -410,10 +408,11 @@ export async function waitForMessage(
     }
 
     if (targetReached && isResponseComplete(snapshot)) {
+      const data = waitDataFromText(args, true, latestText, latestAssistantCount, Date.now() - started);
       return withCommandOutputText(resultOk(
-        { complete: true, responseText: latestText, assistantTurnCount: latestAssistantCount, elapsedMs: Date.now() - started },
+        data,
         await contextFromPage(page),
-        [...waitWarnings]
+        [...waitWarnings, ...responseContentWarnings(args, true)]
       ));
     }
 
@@ -421,16 +420,12 @@ export async function waitForMessage(
   }
 
   if (lastTargetText.length > 0) {
+    const data = waitDataFromText(args, false, lastTargetText, latestAssistantCount, Date.now() - started);
     return withCommandOutputText({
       ok: false,
       status: "partial",
-      data: {
-        complete: false,
-        responseText: lastTargetText,
-        assistantTurnCount: latestAssistantCount,
-        elapsedMs: Date.now() - started
-      },
-      warnings: [...waitWarnings, "Timed out after receiving partial assistant text."],
+      data,
+      warnings: [...waitWarnings, ...responseContentWarnings(args, false), "Timed out after receiving partial assistant text."],
       context: await contextFromPage(page)
     } satisfies CommandResult<WaitData>);
   }
@@ -446,6 +441,39 @@ export async function waitForMessage(
     },
     context: await contextFromPage(page)
   };
+}
+
+function waitDataFromText(
+  args: WaitArgs,
+  complete: boolean,
+  responseText: string,
+  assistantTurnCount: number,
+  elapsedMs: number
+): WaitData {
+  const data: WaitData = {
+    complete,
+    assistantTurnCount,
+    elapsedMs
+  };
+
+  if (args.responseContent === "metadata") {
+    data.responseContent = "metadata";
+    data.responseChars = responseText.length;
+    data.responseSha256 = createHash("sha256").update(responseText).digest("hex");
+    return data;
+  }
+
+  data.responseText = responseText;
+  return data;
+}
+
+function responseContentWarnings(args: WaitArgs, complete: boolean): string[] {
+  if (args.responseContent !== "metadata") return [];
+  return [
+    complete
+      ? "Assistant response text was omitted because responseContent is metadata; call readLatest to capture the completed answer."
+      : "Partial assistant text was omitted because responseContent is metadata; call wait again on the same thread or readLatest after completion."
+  ];
 }
 
 async function pageStateFromProbe(

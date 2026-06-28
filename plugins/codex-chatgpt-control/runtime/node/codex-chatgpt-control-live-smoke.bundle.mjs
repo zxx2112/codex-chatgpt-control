@@ -4768,6 +4768,9 @@ function filterResultsByQuery(results, query) {
   });
 }
 
+// src/commands/messages.ts
+import { createHash as createHash2 } from "node:crypto";
+
 // src/dom/generation-state.ts
 var EMPTY_GENERATION_STATE = {
   active: false,
@@ -5240,17 +5243,14 @@ async function waitForMessage(env, args = {}) {
       hasResponseActions: await responseActionsFromProbe(responseActionsProbe(page, deadline, { timeoutMs: probeTimeoutMs }), waitWarnings)
     };
     if (targetReached && snapshot.generation.stopped && latestText.length > 0) {
+      const data = waitDataFromText(args, false, latestText, latestAssistantCount, Date.now() - started);
       return withCommandOutputText({
         ok: false,
         status: "partial",
-        data: {
-          complete: false,
-          responseText: latestText,
-          assistantTurnCount: latestAssistantCount,
-          elapsedMs: Date.now() - started
-        },
+        data,
         warnings: [
           ...waitWarnings,
+          ...responseContentWarnings(args, false),
           "ChatGPT generation appears to have been stopped or interrupted before completion.",
           ...snapshot.generation.signals.map((signal) => `Generation state signal: ${signal}`)
         ],
@@ -5258,25 +5258,22 @@ async function waitForMessage(env, args = {}) {
       });
     }
     if (targetReached && isResponseComplete(snapshot)) {
+      const data = waitDataFromText(args, true, latestText, latestAssistantCount, Date.now() - started);
       return withCommandOutputText(resultOk(
-        { complete: true, responseText: latestText, assistantTurnCount: latestAssistantCount, elapsedMs: Date.now() - started },
+        data,
         await contextFromPage(page),
-        [...waitWarnings]
+        [...waitWarnings, ...responseContentWarnings(args, true)]
       ));
     }
     await sleep(page, pollMs);
   }
   if (lastTargetText.length > 0) {
+    const data = waitDataFromText(args, false, lastTargetText, latestAssistantCount, Date.now() - started);
     return withCommandOutputText({
       ok: false,
       status: "partial",
-      data: {
-        complete: false,
-        responseText: lastTargetText,
-        assistantTurnCount: latestAssistantCount,
-        elapsedMs: Date.now() - started
-      },
-      warnings: [...waitWarnings, "Timed out after receiving partial assistant text."],
+      data,
+      warnings: [...waitWarnings, ...responseContentWarnings(args, false), "Timed out after receiving partial assistant text."],
       context: await contextFromPage(page)
     });
   }
@@ -5291,6 +5288,27 @@ async function waitForMessage(env, args = {}) {
     },
     context: await contextFromPage(page)
   };
+}
+function waitDataFromText(args, complete, responseText, assistantTurnCount, elapsedMs) {
+  const data = {
+    complete,
+    assistantTurnCount,
+    elapsedMs
+  };
+  if (args.responseContent === "metadata") {
+    data.responseContent = "metadata";
+    data.responseChars = responseText.length;
+    data.responseSha256 = createHash2("sha256").update(responseText).digest("hex");
+    return data;
+  }
+  data.responseText = responseText;
+  return data;
+}
+function responseContentWarnings(args, complete) {
+  if (args.responseContent !== "metadata") return [];
+  return [
+    complete ? "Assistant response text was omitted because responseContent is metadata; call readLatest to capture the completed answer." : "Partial assistant text was omitted because responseContent is metadata; call wait again on the same thread or readLatest after completion."
+  ];
 }
 async function pageStateFromProbe(probe, warnings) {
   const result = await probe;
@@ -6129,7 +6147,7 @@ async function sleep2(page, ms2) {
 // src/commands/files.ts
 import { access, readFile as readFile2, stat as stat4 } from "node:fs/promises";
 import { constants } from "node:fs";
-import { createHash as createHash2 } from "node:crypto";
+import { createHash as createHash3 } from "node:crypto";
 import path2 from "node:path";
 
 // src/platform/local-paths.ts
@@ -6372,7 +6390,7 @@ async function fileMetadata(absolute, bytes, includeHash = false) {
     category
   };
   if (includeHash) {
-    metadata.sha256 = createHash2("sha256").update(await readFile2(absolute)).digest("hex");
+    metadata.sha256 = createHash3("sha256").update(await readFile2(absolute)).digest("hex");
   }
   return metadata;
 }
@@ -9177,6 +9195,13 @@ function reportArgs(name) {
   return { result: "CommandResult to persist", destDir: "optional report directory" };
 }
 function primitiveArgs(name) {
+  if (name === "messages.wait") return {
+    timeoutMs: "optional wait timeout",
+    stableMs: "optional stability window before completion",
+    pollMs: "optional polling interval",
+    mode: "normal or deep_research",
+    responseContent: "include for current behavior, metadata to omit assistant text and return chars/hash only"
+  };
   if (name === "messages.readLatest") return { role: "assistant or user", format: "markdown, normalized_text, visible_text, html, blocks, or all" };
   if (name === "artifacts.listLatest") return { kind: "artifact kind; currently image", max: "maximum artifacts to return" };
   if (name === "artifacts.wait") return { kind: "artifact kind; currently image", afterArtifactCount: "baseline artifact count", requireDownload: "wait until a download affordance is visible" };

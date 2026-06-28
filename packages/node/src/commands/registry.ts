@@ -249,6 +249,13 @@ function reportArgs(name: string): Record<string, string> {
 }
 
 function primitiveArgs(name: string): Record<string, string> {
+  if (name === "messages.wait") return {
+    timeoutMs: "optional wait timeout",
+    stableMs: "optional stability window before completion",
+    pollMs: "optional polling interval",
+    mode: "normal or deep_research",
+    responseContent: "include for current behavior, metadata to omit assistant text and return chars/hash only"
+  };
   if (name === "messages.readLatest") return { role: "assistant or user", format: "markdown, normalized_text, visible_text, html, blocks, or all" };
   if (name === "artifacts.listLatest") return { kind: "artifact kind; currently image", max: "maximum artifacts to return" };
   if (name === "artifacts.wait") return { kind: "artifact kind; currently image", afterArtifactCount: "baseline artifact count", requireDownload: "wait until a download affordance is visible" };

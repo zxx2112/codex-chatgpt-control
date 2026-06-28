@@ -330,6 +330,65 @@ describe("extractMessagesFromHtml", () => {
     expect(result.status).toBe("partial");
   });
 
+  it("can return wait metadata without repeating assistant text", async () => {
+    const page = scriptedWaitPage([
+      {
+        totalCount: 2,
+        assistantCount: 1,
+        latestAssistantTurnIndex: 2,
+        latestAssistantText: "Partial text should stay out of the command result.",
+        hasStopControl: false,
+        stopButtonAria: "Stop answering",
+        hasResponseActions: true
+      }
+    ]);
+
+    const result = await waitForMessage({ page }, {
+      afterAssistantTurnCount: 0,
+      timeoutMs: 5,
+      stableMs: 0,
+      pollMs: 1,
+      responseContent: "metadata"
+    });
+
+    expect(result.ok).toBe(false);
+    expect(result.status).toBe("partial");
+    expect(result.output_text).toBeUndefined();
+    expect(result.data?.responseText).toBeUndefined();
+    expect(result.data?.responseChars).toBe(51);
+    expect(result.data?.responseSha256).toHaveLength(64);
+    expect(result.warnings.join(" ")).toContain("Partial assistant text was omitted");
+  });
+
+  it("can report completion metadata without returning the final answer body", async () => {
+    const page = scriptedWaitPage([
+      {
+        totalCount: 2,
+        assistantCount: 1,
+        latestAssistantTurnIndex: 2,
+        latestAssistantText: "Final text should be read in a separate command.",
+        hasStopControl: false,
+        hasResponseActions: true
+      }
+    ]);
+
+    const result = await waitForMessage({ page }, {
+      afterAssistantTurnCount: 0,
+      timeoutMs: 100,
+      stableMs: 0,
+      pollMs: 1,
+      responseContent: "metadata"
+    });
+
+    expect(result.ok).toBe(true);
+    expect(result.status).toBe("ok");
+    expect(result.output_text).toBeUndefined();
+    expect(result.data?.responseText).toBeUndefined();
+    expect(result.data?.responseChars).toBe(48);
+    expect(result.data?.responseSha256).toHaveLength(64);
+    expect(result.warnings.join(" ")).toContain("Assistant response text was omitted");
+  });
+
   it("bounds page-state blocker scans so partial text is not lost", async () => {
     const page = scriptedWaitPage([
       {

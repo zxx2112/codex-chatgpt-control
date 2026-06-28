@@ -222,11 +222,15 @@ export type WaitArgs = {
   stableMs?: number;
   pollMs?: number;
   mode?: "normal" | "deep_research";
+  responseContent?: "include" | "metadata";
 };
 
 export type WaitData = {
   complete: boolean;
   responseText?: string;
+  responseChars?: number;
+  responseSha256?: string;
+  responseContent?: "include" | "metadata";
   assistantTurnCount: number;
   elapsedMs: number;
 };

@@ -67,7 +67,7 @@ Current protocol error codes are:
 
 Browser-control blockers are not protocol errors. They are normal command or runner results with `status: "blocked"`, `status: "partial"`, or `status: "needs_confirmation"` plus blocker/interruption details.
 
-`status: "partial"` is the required result for incomplete response capture. A partial result may still include `output_text` and `data.responseText`, but consumers must treat that text as incomplete until a later wait confirms completion. Common causes are wait timeout after partial assistant text, active generation controls such as `Stop answering`, stopped-generation markers such as `Stopped thinking`, or a read fallback after the wait step could not confirm completion. Intentional capture clipping uses `data.captureLimit` plus warnings; it is separate from ChatGPT generation length.
+`status: "partial"` is the required result for incomplete response capture. A partial result may still include `output_text` and `data.responseText`, but consumers must treat that text as incomplete until a later wait confirms completion. Common causes are wait timeout after partial assistant text, active generation controls such as `Stop answering`, stopped-generation markers such as `Stopped thinking`, or a read fallback after the wait step could not confirm completion. For status-only polling, `messages.wait` accepts `responseContent: "metadata"`; partial and completed wait results then omit assistant text and instead return compact metadata such as `data.responseChars` and `data.responseSha256`. Intentional capture clipping uses `data.captureLimit` plus warnings; it is separate from ChatGPT generation length.
 
 ## Streaming
 

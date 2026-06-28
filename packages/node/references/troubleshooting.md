@@ -115,12 +115,20 @@ Use `readLatest({ format: "markdown" })`, `copyLatest()`, or the default SDK `re
 
 ## Long Responses Return `partial`
 
-Long Pro, Thinking, Deep Research, or file-backed answers can take longer than the default wait window. Treat `status: "partial"` and `data.complete: false` as an incomplete capture even when `output_text` is non-empty. Re-run `messages.wait(...)` on the same thread with a larger timeout, then call `readLatest(...)` or `copyLatest(...)` only after completion is confirmed.
+Long Pro, Thinking, Deep Research, or file-backed answers can take longer than the default wait window. Treat `status: "partial"` and `data.complete: false` as an incomplete capture even when `output_text` is non-empty. For repeated polling, prefer `messages.wait({ responseContent: "metadata", ... })` so Codex receives compact status metadata instead of the same growing partial answer body. Re-run `messages.wait(...)` on the same thread until completion is confirmed, then call `readLatest(...)` or `copyLatest(...)` once.
 
 Recommended long-answer wait:
 
 ```ts
-wait: { timeoutMs: 600000, stableMs: 8000, pollMs: 1000 }
+await chatgpt.messages.wait({
+  timeoutMs: 45_000,
+  stableMs: 2_000,
+  pollMs: 1_000,
+  mode: "deep_research",
+  responseContent: "metadata"
+});
+
+const final = await chatgpt.messages.readLatest({ format: "markdown" });
 ```
 
 Active generation may appear as a visible or accessible-name control such as `Stop answering`, `Stop generating`, or `Stop streaming`. Stopped generation may appear as `Stopped thinking`. Treat all of those as incomplete states.

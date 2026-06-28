@@ -139,6 +139,8 @@ const latest = await chatgpt.messages.waitAndRead({
 
 Use `format: "normalized_text"` only for compact assertions, polling checks, or simple exact-string smoke tests.
 
+For long Pro, Thinking, Deep Research, or file-backed answers, poll with `chatgpt.messages.wait({ responseContent: "metadata", ... })` so repeated partial polls return status metadata instead of re-emitting the growing answer body. Call `readLatest({ format: "markdown" })` once the wait confirms completion.
+
 See `references/response-capture.md` for fidelity warnings and report handling.
 
 ## File Upload Permissions

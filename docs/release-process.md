@@ -39,6 +39,7 @@ contributors can review the public-facing history.
 3. Run the exporter check:
 
    ```bash
+   # From the private repository root.
    node tools/public-export/export-public.mjs --check
    ```
 
@@ -56,6 +57,7 @@ contributors can review the public-facing history.
 6. Validate the public branch:
 
    ```bash
+   # From the generated public checkout.
    npm run node:build
    npm run python:compile
    npm run node:contracts

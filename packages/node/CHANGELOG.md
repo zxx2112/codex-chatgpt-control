@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.3.0-alpha.1
+
+- Hardens mode-menu detection and selection against thread/sidebar action menus, with locale-registry-backed thread-action vetoes and container-scoped menu enumeration.
+- Adds the `modes.get` primitive and post-selection verification warnings on `modes.set`.
+- Rewrites wait polling around a single combined DOM snapshot per poll; response text is fetched once at completion instead of every poll.
+- Adds Windows and Linux clipboard capture with DOM fallback.
+- Fixes report `createdAt` to honor the injected clock for deterministic fixtures.
+
 ## 0.2.0-alpha.1
 
 - Adds Windows-safe host path validation and cross-platform backend gates.

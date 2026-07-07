@@ -49,6 +49,7 @@ class PrimitiveFacadeTests(unittest.TestCase):
                 "modes.set",
                 {"model": "Pro", "intelligence": "Pro", "modelVersion": "5.4"},
             ),
+            (lambda: chatgpt.modes.get(), "modes.get", {}),
             (lambda: chatgpt.tools.select(tool="web_search"), "tools.select", {"tool": "web_search"}),
             (lambda: chatgpt.response.copy(which="latest"), "response.copy", {"which": "latest"}),
         ]

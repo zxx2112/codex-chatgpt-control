@@ -970,6 +970,27 @@
       "summary": "Select a visible model, intelligence, effort, or nested model-version candidate when unambiguous."
     },
     {
+      "args": {
+        "timeoutMs": "optional timeout for attaching to the ChatGPT page"
+      },
+      "blockers": [
+        "browser_bridge_unavailable",
+        "login_required",
+        "selector_drift"
+      ],
+      "defaults": {},
+      "defaultTimeoutMs": 30000,
+      "examples": [
+        "await chatgpt.modes.get();",
+        "// Verify an expensive Pro consult before submitting: const current = await chatgpt.modes.get();"
+      ],
+      "layer": "primitive",
+      "name": "modes.get",
+      "retryPolicy": "Return structured CommandResult failures; retry only when the blocker is recoverable and no duplicate prompt will be submitted.",
+      "risk": "low",
+      "summary": "Read the mode labels shown on the visible composer controls without changing them."
+    },
+    {
       "args": {},
       "blockers": [
         "browser_bridge_unavailable",

@@ -576,7 +576,14 @@
       "surface": "workflows-primitives-diagnostics",
       "fixtures": ["command-descriptors.json"],
       "nodeTests": ["tests/unit/modes.test.ts", "tests/unit/client.test.ts"],
-      "pythonTests": ["tests/test_primitives.py"],
+      "pythonTests": ["tests/test_primitives.py", "tests/test_async_client.py"],
+      "docs": ["references/backend-protocol.md", "references/troubleshooting.md"]
+    },
+    "modes.get": {
+      "surface": "workflows-primitives-diagnostics",
+      "fixtures": ["command-descriptors.json"],
+      "nodeTests": ["tests/unit/modes.test.ts", "tests/unit/client.test.ts"],
+      "pythonTests": ["tests/test_primitives.py", "tests/test_async_client.py"],
       "docs": ["references/backend-protocol.md", "references/troubleshooting.md"]
     },
     "tools.select": {

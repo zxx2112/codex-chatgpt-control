@@ -307,7 +307,7 @@ class AsyncChatGPT:
             "wait": "artifacts.wait",
             "download_latest": "artifacts.downloadLatest",
         })
-        self.modes = AsyncPrimitiveGroup(transport, {"set": "modes.set"})
+        self.modes = AsyncPrimitiveGroup(transport, {"set": "modes.set", "get": "modes.get"})
         self.tools = AsyncPrimitiveGroup(transport, {"select": "tools.select"})
         self.response = AsyncPrimitiveGroup(transport, {"copy": "response.copy"})
         self.reports = AsyncReportsClient(transport)

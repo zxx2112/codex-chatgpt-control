@@ -99,6 +99,7 @@ const descriptors: CommandDescriptor[] = [
   primitive("projects.sources.add", "Append explicit local files to a visible ChatGPT Project Sources list after confirmMutation: true.", 180000),
   primitive("response.copy", "Click Copy response and return clipboard Markdown, with DOM fallback.", 5000),
   primitive("modes.set", "Select a visible model, intelligence, effort, or nested model-version candidate when unambiguous.", 30000),
+  primitive("modes.get", "Read the mode labels shown on the visible composer controls without changing them.", 30000),
   primitive("tools.select", "Select a visible ChatGPT tool when unambiguous.", 30000)
 ];
 
@@ -287,6 +288,11 @@ function primitiveArgs(name: string): Record<string, string> {
       timeoutMs: "optional timeout for opening and selecting the visible mode menu"
     };
   }
+  if (name === "modes.get") {
+    return {
+      timeoutMs: "optional timeout for attaching to the ChatGPT page"
+    };
+  }
   return {};
 }
 
@@ -297,6 +303,12 @@ function primitiveExamples(name: string): string[] {
       `await chatgpt.modes.set({ intelligence: "Pro", modelVersion: "5.4" });`,
       `await chatgpt.modes.set({ effort: "Thinking" });`,
       `await chatgpt.askWithFiles({ mode: { model: "Pro" }, files: ["/absolute/host/path.jpg"], prompt: "Describe this image.", wait: true });`
+    ];
+  }
+  if (name === "modes.get") {
+    return [
+      `await chatgpt.modes.get();`,
+      `// Verify an expensive Pro consult before submitting: const current = await chatgpt.modes.get();`
     ];
   }
   if (name === "files.preflight") {

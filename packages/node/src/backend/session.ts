@@ -200,6 +200,8 @@ async function dispatchBackendCommand(client: ChatGPTClient, request: BackendReq
       return client.projects.sources.add(payload as Parameters<ChatGPTClient["projects"]["sources"]["add"]>[0]);
     case "modes.set":
       return client.modes.set(payload as Parameters<ChatGPTClient["modes"]["set"]>[0]);
+    case "modes.get":
+      return client.modes.get(emptyToUndefined(payload));
     case "tools.select":
       return client.tools.select(payload as Parameters<ChatGPTClient["tools"]["select"]>[0]);
     case "response.copy":

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { selectTool, setMode } from "../../src/commands/modes.js";
+import { getMode, selectTool, setMode } from "../../src/commands/modes.js";
 import type { LocatorLike, PageLike } from "../../src/types.js";
 
 describe("mode and tool selection blockers", () => {
@@ -120,6 +120,18 @@ describe("mode and tool selection blockers", () => {
     });
   });
 
+  it("matches fullwidth compatibility-form mode labels via NFKC folding", async () => {
+    const page = menuPage(["Ｐｒｏ", "Thinking"], ["Ｐｒｏ"]);
+
+    const result = await setMode({ page }, { model: "Pro" });
+
+    expect(result.ok).toBe(true);
+    expect(result.data).toEqual({
+      selected: ["Ｐｒｏ"],
+      candidates: ["Ｐｒｏ", "Thinking"]
+    });
+  });
+
   it("selects a localized semantic mode without relying on menu position", async () => {
     const page = menuPage(["حرفه‌ای"], ["حرفه‌ای"]);
 
@@ -171,6 +183,99 @@ describe("mode and tool selection blockers", () => {
       message: "Visible menu appears to be a thread/action menu, not the ChatGPT mode menu.",
       candidates: [{ label: "Share" }, { label: "Rename" }, { label: "Move to project" }]
     });
+  });
+
+  it("does not select a pinned thread action whose title contains Pro", async () => {
+    const page = menuPage([
+      "Unpin Shortage Generation Request",
+      "Pin CopyBench Pro Consultation"
+    ], ["Pin CopyBench Pro Consultation"]);
+
+    const result = await setMode({ page }, { model: "Pro" });
+
+    expect(result.ok).toBe(false);
+    expect(result.status).toBe("unsupported");
+    expect(result.blocker).toMatchObject({
+      kind: "selector_drift",
+      code: "visible_candidate_not_found",
+      message: "Visible menu appears to be a thread/action menu, not the ChatGPT mode menu.",
+      candidates: [
+        { label: "Unpin Shortage Generation Request" },
+        { label: "Pin CopyBench Pro Consultation" }
+      ]
+    });
+  });
+
+  it("rejects a pinned thread action even when its title contains a full mode word", async () => {
+    const page = menuPage([
+      "Unpin Weekly Standup",
+      "Pin Extended Warranty Notes"
+    ], ["Pin Extended Warranty Notes"]);
+
+    const result = await setMode({ page }, { effort: "Extended" });
+
+    expect(result.ok).toBe(false);
+    expect(result.status).toBe("unsupported");
+    expect(result.blocker).toMatchObject({
+      kind: "selector_drift",
+      code: "visible_candidate_not_found",
+      message: "Visible menu appears to be a thread/action menu, not the ChatGPT mode menu."
+    });
+  });
+
+  it("still selects the real mode row when a pinned thread with a mode word shares the menu", async () => {
+    const page = menuPage([
+      "Pin CopyBench Pro Consultation",
+      "Instant",
+      "Thinking",
+      "Pro"
+    ], ["Pro"]);
+
+    const result = await setMode({ page }, { model: "Pro" });
+
+    expect(result.ok).toBe(true);
+    expect(result.data).toEqual({
+      selected: ["Pro"],
+      candidates: ["Pin CopyBench Pro Consultation", "Instant", "Thinking", "Pro"]
+    });
+  });
+
+  it("warns when a selected mode is not reflected by visible composer controls", async () => {
+    const page = menuPage(["Instant", "Thinking", "Pro"], ["Thinking"]);
+
+    const result = await setMode({ page }, { effort: "Thinking" });
+
+    expect(result.ok).toBe(true);
+    expect(result.warnings.join(" ")).toContain("Mode selection is unverified");
+  });
+
+  it("does not warn when the composer reflects the selected mode", async () => {
+    const page = intelligencePickerPage({ current: "High" });
+
+    const result = await setMode({ page }, { model: "Pro" });
+
+    expect(result.ok).toBe(true);
+    expect(result.warnings).toEqual([]);
+  });
+
+  it("reads visible mode labels without changing them", async () => {
+    const page = buttonOnlyPage(["New chat", "Thinking", "Send prompt"]);
+
+    const result = await getMode({ page });
+
+    expect(result.ok).toBe(true);
+    expect(result.data).toEqual({ modes: ["Thinking"] });
+    expect(result.warnings).toEqual([]);
+  });
+
+  it("reports when no mode-labelled control is visible to read", async () => {
+    const page = buttonOnlyPage(["New chat", "Send prompt"]);
+
+    const result = await getMode({ page });
+
+    expect(result.ok).toBe(true);
+    expect(result.data).toEqual({ modes: [] });
+    expect(result.warnings.join(" ")).toContain("could not be read");
   });
 
   it("does not reject a model-version-only menu as the wrong menu", async () => {

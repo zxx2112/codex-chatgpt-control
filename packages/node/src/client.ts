@@ -10,6 +10,8 @@ import type {
   FilePreflightArgs,
   FilePreflightData,
   ExistingTabPolicy,
+  GetModeArgs,
+  GetModeData,
   ListArtifactsArgs,
   NewThreadArgs,
   OpenThreadArgs,
@@ -34,7 +36,7 @@ import { attachFiles, downloadLatestFile, preflightFiles } from "./commands/file
 import { addProjectSources, buildProjectSourceAddPlan, listProjectSources } from "./commands/project-sources.js";
 import { doctor, type DoctorArgs, type DoctorReport } from "./commands/doctor.js";
 import { askMessage, composeMessage, readLatest, submitMessage, waitAndRead, waitForMessage } from "./commands/messages.js";
-import { selectTool, setMode } from "./commands/modes.js";
+import { getMode, selectTool, setMode } from "./commands/modes.js";
 import { createRunReport, type RunReportData, type RunReportOptions } from "./commands/reports.js";
 import { copyResponse } from "./commands/response-actions.js";
 import { commandDescriptors, describeCommand, helpText, type CommandDescriptor } from "./commands/registry.js";
@@ -209,6 +211,7 @@ export type ChatGPTClient = {
   };
   modes: {
     set(args: SetModeArgs): Promise<CommandResult<unknown>>;
+    get(args?: GetModeArgs): Promise<CommandResult<GetModeData>>;
   };
   tools: {
     select(args: SelectToolArgs): Promise<CommandResult<unknown>>;
@@ -293,7 +296,8 @@ export function createChatGPT(options: ChatGPTClientOptions = {}): ChatGPTClient
       downloadLatest: args => downloadLatestArtifact(env, args)
     },
     modes: {
-      set: args => setMode(env, args)
+      set: args => setMode(env, args),
+      get: args => getMode(env, args)
     },
     tools: {
       select: args => selectTool(env, args)

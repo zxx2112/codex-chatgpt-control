@@ -1,9 +1,9 @@
 import { resultError, resultOk } from "../errors.js";
 import { enumerateVisibleMenuItems, findUniqueMenuItem, type MenuItem } from "../dom/menus.js";
 import { localeLabels } from "../dom/locale-labels.js";
-import { normalizeForLabelMatch, visibleLabelMatches } from "../dom/label-match.js";
+import { isShortLatinToken, normalizeForLabelMatch, visibleLabelMatches } from "../dom/label-match.js";
 import { normalizeLabel, normalizeWhitespace } from "../dom/visible-text.js";
-import type { CommandResult, LocatorLike, PageLike, RuntimeEnv, SelectToolArgs, SetModeArgs } from "../types.js";
+import type { CommandResult, GetModeArgs, LocatorLike, PageLike, RuntimeEnv, SelectToolArgs, SetModeArgs } from "../types.js";
 import type { ModeOptionId } from "../dom/locale/types.js";
 import { contextFromPage } from "./context.js";
 import { bootstrap } from "./session.js";
@@ -43,14 +43,10 @@ const MODE_ID_ALIASES: Record<ModeOptionId, string[]> = {
   extraHigh: ["extra high", "extra-high", "extra_high", "extrahigh"],
   pro: ["pro"],
 };
-const THREAD_ACTION_MENU_LABELS = new Set([
-  "archive",
-  "copy link",
-  "delete",
-  "move to project",
-  "rename",
-  "share",
-]);
+const THREAD_ACTION_MENU_LABELS = new Set(localeLabels.threadActionMenuItems.map(normalizeForLabelMatch));
+const THREAD_ACTION_PREFIXES = localeLabels.threadActionPrefixes
+  .map(normalizeForLabelMatch)
+  .filter(prefix => prefix.length > 0);
 
 type RequestedMode = {
   requested: string;
@@ -129,7 +125,65 @@ export async function setMode(
       selected.push(versionResult.selected);
     }
 
-    return resultOk({ selected, candidates: candidateLabels }, await contextFromPage(page));
+    const verificationWarnings = await modeVerificationWarnings(page, requested, selected);
+    return resultOk({ selected, candidates: candidateLabels }, await contextFromPage(page), verificationWarnings);
+  } catch (error) {
+    return resultError(error instanceof Error ? error : new Error(String(error)), await contextFromPage(page));
+  }
+}
+
+/**
+ * Post-condition check: after clicking mode rows, the composer's mode-labelled controls
+ * should reflect the requested selection. A mismatch does not fail the command — some
+ * ChatGPT surfaces do not echo every mode — but it must be visible to callers so a
+ * modes.set "ok" is never silently treated as a verified mode (the "Pin ... Pro ..."
+ * incident shape). Model-version selections are not verified because versions are
+ * usually not echoed on the composer.
+ */
+async function modeVerificationWarnings(
+  page: PageLike,
+  requested: RequestedMode[],
+  selected: string[]
+): Promise<string[]> {
+  if (requested.length === 0) {
+    return [];
+  }
+
+  await page.waitForTimeout?.(250);
+  const visibleButtons = await visibleModeButtonLabelList(page);
+  if (visibleButtons.length === 0) {
+    return [
+      `Mode selection is unverified: no mode-labelled composer control was visible after selecting ${selected.map(label => JSON.stringify(label)).join(", ")}. Use modes.get or inspect modeStep before treating this as a verified mode.`
+    ];
+  }
+
+  const unverified = requested.filter(request => findUniqueVisibleLabelForRequest(visibleButtons, request) === undefined);
+  if (unverified.length === 0) {
+    return [];
+  }
+  return [
+    `Mode selection is unverified: requested ${unverified.map(request => JSON.stringify(request.requested)).join(", ")} is not reflected by the visible mode controls (${visibleButtons.join(", ")}). Use modes.get or inspect modeStep before treating this as a verified mode.`
+  ];
+}
+
+export async function getMode(
+  env: RuntimeEnv,
+  args: GetModeArgs = {}
+): Promise<CommandResult<{ modes: string[] }>> {
+  void args;
+  const boot = await ensurePage(env);
+  if (!boot.ok) {
+    return boot as CommandResult<{ modes: string[] }>;
+  }
+
+  const page = env.page!;
+
+  try {
+    const modes = await visibleModeButtonLabelList(page);
+    const warnings = modes.length === 0
+      ? ["No mode-labelled composer control is currently visible, so the active ChatGPT mode could not be read."]
+      : [];
+    return resultOk({ modes }, await contextFromPage(page), warnings);
   } catch (error) {
     return resultError(error instanceof Error ? error : new Error(String(error)), await contextFromPage(page));
   }
@@ -153,7 +207,7 @@ async function waitForModeMenu(page: PageLike, requested: RequestedMode[], timeo
     }
 
     const openMenuItems = await enumerateVisibleMenuItems(page);
-    if (looksLikeModeMenu(openMenuItems.map(item => item.label))) {
+    if (looksLikeModeMenu(openMenuItems)) {
       return { opened: true, alreadySelected: [], modeButtons };
     }
 
@@ -251,34 +305,61 @@ async function clickModeOpener(page: PageLike, modeButtons: string[]): Promise<b
   return clickFirstUniqueButton(page, MODE_OPENER_LABELS);
 }
 
-function looksLikeModeMenu(labels: string[]): boolean {
-  return labels.some(label => {
-    const normalized = normalizeLabel(label);
-    return CURRENT_MODE_LABELS.some(modeLabel => visibleLabelMatches(normalized, normalizeLabel(modeLabel)));
+function isThreadActionLabel(label: string): boolean {
+  const normalized = normalizeForLabelMatch(label);
+  if (THREAD_ACTION_MENU_LABELS.has(normalized)) {
+    return true;
+  }
+  return THREAD_ACTION_PREFIXES.some(prefix => normalized.startsWith(`${prefix} `));
+}
+
+function hasStructuralModeEvidence(item: MenuItem): boolean {
+  if (item.testId?.startsWith("model-switcher-") === true) {
+    return true;
+  }
+  return MODEL_VERSION_FAMILY_PATTERN.test(item.label) || MODEL_VERSION_LABEL_PATTERN.test(item.label);
+}
+
+/**
+ * Whether a single menu item is evidence that the visible menu is the ChatGPT mode menu.
+ *
+ * A fuzzy token hit on a short mode word such as "Pro" is NOT evidence: thread titles
+ * inside sidebar action menus can contain it ("Pin CopyBench Pro Consultation"), which is
+ * exactly the false positive that let modes.set select a pin action as the Pro mode.
+ * Thread-action rows can never be evidence, even when their title embeds a full mode word.
+ * Exact matching uses normalizeForLabelMatch (NFKC) so the evidence set and the veto set
+ * share identical Unicode folding — fullwidth/compatibility-form labels match both sides.
+ */
+function isModeMenuEvidence(item: MenuItem): boolean {
+  if (hasStructuralModeEvidence(item)) {
+    return true;
+  }
+  if (isThreadActionLabel(item.label)) {
+    return false;
+  }
+  const normalized = normalizeForLabelMatch(item.label);
+  return CURRENT_MODE_LABELS.some(modeLabel => {
+    const normalizedMode = normalizeForLabelMatch(modeLabel);
+    if (normalized === normalizedMode) {
+      return true;
+    }
+    return !isShortLatinToken(normalizedMode) && visibleLabelMatches(normalized, normalizedMode);
   });
+}
+
+function looksLikeModeMenu(items: MenuItem[]): boolean {
+  return items.some(item => isModeMenuEvidence(item));
 }
 
 function shouldRejectAsWrongModeMenu(items: MenuItem[]): boolean {
   if (items.length === 0) {
     return false;
   }
-  const hasPositiveModeEvidence = items.some(item => {
-    if (item.testId?.startsWith("model-switcher-") === true) {
-      return true;
-    }
-    if (MODEL_VERSION_FAMILY_PATTERN.test(item.label) || MODEL_VERSION_LABEL_PATTERN.test(item.label)) {
-      return true;
-    }
-    if (item.role === "menuitemradio" && CURRENT_MODE_LABELS.some(label => visibleLabelMatches(item.label, label))) {
-      return true;
-    }
-    return CURRENT_MODE_LABELS.some(label => visibleLabelMatches(item.label, label));
-  });
-  if (hasPositiveModeEvidence) {
+  if (items.some(item => isModeMenuEvidence(item))) {
     return false;
   }
 
-  return items.some(item => THREAD_ACTION_MENU_LABELS.has(normalizeForLabelMatch(item.label)));
+  return items.some(item => isThreadActionLabel(item.label));
 }
 
 async function clickMenuItem(page: PageLike, label: string): Promise<boolean> {
@@ -393,10 +474,11 @@ function toolLabels(tool: string): string[] {
 }
 
 function findModeMenuItem(candidates: MenuItem[], request: RequestedMode): MenuItem | undefined {
+  const selectable = candidates.filter(candidate => !isThreadActionLabel(candidate.label));
   for (const wanted of request.labels) {
-    const exact = findUniqueMenuItem(candidates, wanted);
-    if (exact !== undefined) {
-      return exact;
+    const match = findUniqueModeMenuItem(selectable, wanted);
+    if (match !== undefined) {
+      return match;
     }
   }
 
@@ -405,7 +487,7 @@ function findModeMenuItem(candidates: MenuItem[], request: RequestedMode): MenuI
     return undefined;
   }
 
-  const intelligenceItems = candidates.filter(candidate =>
+  const intelligenceItems = selectable.filter(candidate =>
     candidate.role === "menuitemradio"
     && !MODEL_VERSION_LABEL_PATTERN.test(candidate.label)
     && !MODEL_VERSION_FAMILY_PATTERN.test(candidate.label)
@@ -413,6 +495,31 @@ function findModeMenuItem(candidates: MenuItem[], request: RequestedMode): MenuI
   return intelligenceItems.length >= CANONICAL_INTELLIGENCE_ORDER.size
     ? intelligenceItems[wantedIndex]
     : undefined;
+}
+
+/**
+ * Unique-match a wanted mode label. Exact normalized equality is always accepted; a
+ * fuzzy token hit on a short mode word such as "Pro" additionally requires structural
+ * mode-row evidence (a model-switcher test id or a menuitemradio role), so an arbitrary
+ * unique menu row whose text merely contains "Pro" cannot be selected as the mode.
+ * Exact matching uses normalizeForLabelMatch (NFKC), consistent with isModeMenuEvidence.
+ */
+function findUniqueModeMenuItem(items: MenuItem[], wanted: string): MenuItem | undefined {
+  const normalizedWanted = normalizeForLabelMatch(wanted);
+  const exact = items.filter(item => normalizeForLabelMatch(item.label) === normalizedWanted);
+  if (exact.length === 1) {
+    return exact[0];
+  }
+
+  const fuzzy = items.filter(item => visibleLabelMatches(item.label, wanted));
+  if (fuzzy.length !== 1) {
+    return undefined;
+  }
+  const match = fuzzy[0]!;
+  if (!isShortLatinToken(normalizedWanted)) {
+    return match;
+  }
+  return hasStructuralModeEvidence(match) || match.role === "menuitemradio" ? match : undefined;
 }
 
 function requestedModeSelections(args: SetModeArgs): RequestedMode[] {
@@ -499,7 +606,7 @@ async function selectModelVersion(
   timeoutMs: number
 ): Promise<{ selected?: string; candidates: string[] }> {
   let candidates = await enumerateVisibleMenuItems(page);
-  if (!looksLikeModeMenu(candidates.map(candidate => candidate.label))) {
+  if (!looksLikeModeMenu(candidates)) {
     const opened = await waitForModeMenu(page, [{ requested: requestedVersion, labels: [requestedVersion] }], timeoutMs);
     if (opened.opened) {
       await page.waitForTimeout?.(250);

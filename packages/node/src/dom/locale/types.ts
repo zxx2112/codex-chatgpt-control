@@ -46,6 +46,10 @@ export type LocaleStrings = {
   modeOptions: ModeOptionLabels;
   modeOpenerExtra: string | readonly string[];
 
+  // --- Thread/action menu rejection (wrong-menu veto for mode selection) ---
+  threadActionMenuItems: string | readonly string[];
+  threadActionPrefixes: string | readonly string[];
+
   // --- Tool menu items, keyed by logical tool id ---
   tools: Record<"web_search" | "deep_research" | "create_image", string | readonly string[]>;
 

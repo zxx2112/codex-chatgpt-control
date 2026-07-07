@@ -589,6 +589,14 @@ export type SetModeArgs = {
   timeoutMs?: number;
 };
 
+export type GetModeArgs = {
+  timeoutMs?: number;
+};
+
+export type GetModeData = {
+  modes: string[];
+};
+
 export type SelectToolArgs = {
   tool: "web_search" | "deep_research" | "create_image" | string;
   timeoutMs?: number;

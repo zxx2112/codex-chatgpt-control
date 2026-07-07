@@ -163,7 +163,7 @@ Python is a native SDK facade over the local backend protocol. The initial brows
 
 - `dist/codex-chatgpt-control-backend.mjs` is the stdio backend bundle.
 - `BackendClient` and `StdioBackendTransport` keep Python backend calls long-lived.
-- `NodeSidecarTransport.run(...)` remains as a compatibility wrapper over backend `runner.run`.
+- `NodeSidecarTransport.run(...)` remains as a compatibility wrapper over backend `runner.run`. By default each call spawns and tears down its own backend subprocess; use it as a context manager (or call `open()`/`close()`) to reuse one persistent backend process across calls in multi-command workflows. Transport-level failures close the persistent session; protocol-level errors keep it open.
 - Ordinary-shell smoke passes when browser-required calls return structured `browser_bridge_unavailable`.
 - Browser-bridge runtime smoke remains explicitly gated because it can operate a real ChatGPT session.
 
@@ -201,7 +201,7 @@ python scripts/live_smoke.py --mode browser-bridge
 When the live backend is hosted inside the Codex Chrome plugin runtime, do not test bridge availability from a normal shell or an unbootstrapped Node REPL. First initialize the Chrome runtime:
 
 ```js
-const { setupBrowserRuntime } = await import("/example/user/.codex/plugins/cache/openai-bundled/chrome/26.602.40724/scripts/browser-client.mjs");
+const { setupBrowserRuntime } = await import("/example/user/.codex/plugins/cache/openai-bundled/chrome/latest/scripts/browser-client.mjs");
 await setupBrowserRuntime({ globals: globalThis });
 globalThis.browser = await agent.browsers.get("extension");
 ```

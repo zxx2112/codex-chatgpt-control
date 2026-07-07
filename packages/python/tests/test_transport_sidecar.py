@@ -101,6 +101,121 @@ def fake_backend_command(source: str) -> list[str]:
     return [sys.executable, "-c", textwrap.dedent(source)]
 
 
+def multi_request_backend_command(pid_path: Path) -> list[str]:
+    """A fake backend that answers every request on its stdin and records its PID per line."""
+    return fake_backend_command(
+        f"""
+        import json
+        import os
+        import sys
+        for line in sys.stdin:
+            request = json.loads(line)
+            with open({str(pid_path)!r}, "a", encoding="utf-8") as handle:
+                handle.write(str(os.getpid()) + "\\n")
+            print(json.dumps({{
+                "schemaVersion": {BACKEND_RESPONSE_SCHEMA_VERSION!r},
+                "requestId": request.get("requestId"),
+                "ok": True,
+                "result": {successful_result("session-ok")!r},
+            }}), flush=True)
+        """
+    )
+
+
+class NodeSidecarSessionTests(unittest.TestCase):
+    def test_run_without_session_uses_a_fresh_process_per_call(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            pid_path = Path(tmp) / "pids.txt"
+            transport = NodeSidecarTransport(command=multi_request_backend_command(pid_path))
+
+            transport.run({"agent": {"name": "reviewer"}, "input": "one"})
+            transport.run({"agent": {"name": "reviewer"}, "input": "two"})
+
+            pids = pid_path.read_text(encoding="utf-8").split()
+            self.assertEqual(len(pids), 2)
+            self.assertNotEqual(pids[0], pids[1])
+
+    def test_context_manager_session_reuses_one_process(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            pid_path = Path(tmp) / "pids.txt"
+            with NodeSidecarTransport(command=multi_request_backend_command(pid_path)) as transport:
+                first = transport.run({"agent": {"name": "reviewer"}, "input": "one"})
+                second = transport.run({"agent": {"name": "reviewer"}, "input": "two"})
+
+            self.assertEqual(first["output_text"], "session-ok")
+            self.assertEqual(second["output_text"], "session-ok")
+            pids = pid_path.read_text(encoding="utf-8").split()
+            self.assertEqual(len(pids), 2)
+            self.assertEqual(pids[0], pids[1])
+
+    def test_open_is_idempotent_and_close_ends_the_session(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            pid_path = Path(tmp) / "pids.txt"
+            transport = NodeSidecarTransport(command=multi_request_backend_command(pid_path))
+            transport.open()
+            transport.open()
+            transport.run({"agent": {"name": "reviewer"}, "input": "one"})
+            transport.close()
+            transport.run({"agent": {"name": "reviewer"}, "input": "two"})
+
+            pids = pid_path.read_text(encoding="utf-8").split()
+            self.assertEqual(len(pids), 2)
+            self.assertNotEqual(pids[0], pids[1])
+
+    def test_transport_failure_closes_the_persistent_session(self) -> None:
+        transport = NodeSidecarTransport(
+            command=fake_backend_command(
+                """
+                import sys
+                sys.stdin.readline()
+                sys.stderr.write("session backend crashed")
+                sys.exit(3)
+                """
+            )
+        )
+        transport.open()
+        try:
+            with self.assertRaises(NodeSidecarError) as ctx:
+                transport.run({"agent": {"name": "reviewer"}, "input": "one"})
+
+            self.assertEqual(ctx.exception.returncode, 3)
+            self.assertIsNone(transport._session)
+        finally:
+            transport.close()
+
+    def test_protocol_error_keeps_the_persistent_session_open(self) -> None:
+        transport = NodeSidecarTransport(
+            command=fake_backend_command(
+                f"""
+                import json
+                import sys
+                for line in sys.stdin:
+                    request = json.loads(line)
+                    print(json.dumps({{
+                        "schemaVersion": {BACKEND_RESPONSE_SCHEMA_VERSION!r},
+                        "requestId": request.get("requestId"),
+                        "ok": False,
+                        "error": {{
+                            "code": "unknown_command",
+                            "message": "No such command.",
+                            "recoverable": False,
+                        }},
+                    }}), flush=True)
+                """
+            )
+        )
+        transport.open()
+        try:
+            with self.assertRaises(NodeSidecarError):
+                transport.run({"agent": {"name": "reviewer"}, "input": "one"})
+            self.assertIsNotNone(transport._session)
+            with self.assertRaises(NodeSidecarError) as second:
+                transport.run({"agent": {"name": "reviewer"}, "input": "two"})
+            self.assertIsNone(second.exception.returncode)
+        finally:
+            transport.close()
+
+
 class NodeSidecarReturncodeRegressionTests(unittest.TestCase):
     """Regression tests for Bug 3: NodeSidecarTransport must propagate a non-None
     returncode from BackendTransportError through to NodeSidecarError.

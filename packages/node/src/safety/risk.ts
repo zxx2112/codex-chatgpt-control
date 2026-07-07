@@ -22,6 +22,7 @@ export const commandRisk = {
   "projects.sources.add": "medium",
   "response.copy": "medium",
   "modes.set": "medium",
+  "modes.get": "low",
   "tools.select": "medium",
   "threads.delete": "high",
   "threads.archive": "high",

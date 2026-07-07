@@ -66,6 +66,11 @@ describe("createChatGPT", () => {
       risk: "low",
       blockers: expect.arrayContaining(["not_found", "permission", "upload_failed"])
     });
+    expect(chatgpt.describe("modes.get")).toMatchObject({
+      layer: "primitive",
+      risk: "low",
+      blockers: expect.arrayContaining(["selector_drift"])
+    });
     expect(chatgpt.help("ask")).toContain("Ask ChatGPT");
     expect(chatgpt.help("ask")).toContain("Retry policy:");
   });

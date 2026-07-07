@@ -112,7 +112,7 @@ The backend must support:
 - diagnostics: `doctor`
 - reports: `createReport`, `reports.create`, `reports.redact`, `reports.summarize`
 - command discovery: `commands`, `describe`, `help`
-- primitives: `session.bootstrap`, `threads.*`, `messages.*`, `artifacts.*`, `files.preflight`, `files.attach`, `files.downloadLatest`, `projects.sources.list`, `projects.sources.planAdd`, `projects.sources.add`, `modes.set`, `tools.select`, `response.copy`
+- primitives: `session.bootstrap`, `threads.*`, `messages.*`, `artifacts.*`, `files.preflight`, `files.attach`, `files.downloadLatest`, `projects.sources.list`, `projects.sources.planAdd`, `projects.sources.add`, `modes.set`, `modes.get`, `tools.select`, `response.copy`
 
 `doctor` returns a normal `CommandResult` whose `data.checks` map is extensible. Scenario checks such as `existing_tab`, `artifacts`, `file_preflight`, `localization`, and `reports` may add optional `code`, `blockerKind`, `nextCommand`, and JSON `details` fields to individual check entries while preserving the existing `status`, `message`, and `remediation` fields.
 
@@ -215,7 +215,7 @@ Important: in Codex, `globalThis.agent` is not present until the Chrome plugin r
 The live Chrome bootstrap is:
 
 ```js
-const { setupBrowserRuntime } = await import("/example/user/.codex/plugins/cache/openai-bundled/chrome/26.602.40724/scripts/browser-client.mjs");
+const { setupBrowserRuntime } = await import("/example/user/.codex/plugins/cache/openai-bundled/chrome/latest/scripts/browser-client.mjs");
 await setupBrowserRuntime({ globals: globalThis });
 globalThis.browser = await agent.browsers.get("extension");
 ```

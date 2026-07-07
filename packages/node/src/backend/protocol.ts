@@ -48,6 +48,7 @@ export const backendCommands = [
   "projects.sources.planAdd",
   "projects.sources.add",
   "modes.set",
+  "modes.get",
   "tools.select",
   "response.copy"
 ] as const;

@@ -20,7 +20,7 @@ export function visibleLabelMatches(label: string, wanted: string): boolean {
   return normalizedLabel.includes(normalizedWanted);
 }
 
-function isShortLatinToken(value: string): boolean {
+export function isShortLatinToken(value: string): boolean {
   return value.length <= 3 && /^[a-z0-9]+$/i.test(value);
 }
 

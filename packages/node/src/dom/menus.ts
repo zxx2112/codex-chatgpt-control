@@ -51,7 +51,17 @@ export async function enumerateVisibleMenuItems(page: PageLike): Promise<MenuIte
         if (ariaLabel !== null) item.ariaLabel = ariaLabel;
         return item;
       };
-      const roleItems = Array.from(document.querySelectorAll("[role='menuitem'], [role='menuitemradio'], [role='option']"))
+      const allRoleNodes = Array.from(document.querySelectorAll("[role='menuitem'], [role='menuitemradio'], [role='option']"));
+      // Scope to open menu containers when any exist, so stray role items elsewhere on
+      // the page (sidebar rows, decorative listboxes) cannot contaminate menu matching.
+      // An empty scoped set falls back to the unscoped list: real menus keep their items
+      // inside the container, so an empty intersection means the container heuristic failed.
+      const containers = Array.from(document.querySelectorAll("[role='menu'], [role='listbox'], [data-radix-popper-content-wrapper]"))
+        .filter(container => typeof container.contains === "function");
+      const scopedRoleNodes = containers.length > 0
+        ? allRoleNodes.filter(node => containers.some(container => container.contains(node)))
+        : allRoleNodes;
+      const roleItems = (scopedRoleNodes.length > 0 ? scopedRoleNodes : allRoleNodes)
         .map(toItem)
         .filter(item => item.label.length > 0);
 

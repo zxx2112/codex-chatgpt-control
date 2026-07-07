@@ -112,6 +112,9 @@ class ModesClient:
     def set(self, **kwargs: Any) -> CommandResult:
         return command_result(self._backend, "modes.set", wire_kwargs(**kwargs))
 
+    def get(self, **kwargs: Any) -> CommandResult:
+        return command_result(self._backend, "modes.get", wire_kwargs(**kwargs))
+
 
 class ToolsClient:
     def __init__(self, backend: Any) -> None:

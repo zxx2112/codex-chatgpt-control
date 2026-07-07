@@ -150,6 +150,8 @@ class AsyncClientTests(unittest.IsolatedAsyncioTestCase):
             project_url="https://chatgpt.com/g/g-p-example/project",
             files=["/tmp/a.txt"],
         )
+        mode_set = await chatgpt.modes.set(model="Pro")
+        mode_get = await chatgpt.modes.get()
         report = await chatgpt.reports.redact({"prompt": "private"})
         commands = await chatgpt.commands()
         described = await chatgpt.describe("runner.run")
@@ -159,6 +161,8 @@ class AsyncClientTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(bootstrap.data["command"], "session.bootstrap")
         self.assertEqual(artifact.data["command"], "artifacts.wait")
         self.assertEqual(project_sources.data["command"], "projects.sources.planAdd")
+        self.assertEqual(mode_set.data["command"], "modes.set")
+        self.assertEqual(mode_get.data["command"], "modes.get")
         self.assertEqual(report.data["command"], "reports.redact")
         self.assertEqual(commands[0].name, "runner.run")
         self.assertEqual(described.name, "runner.run")
@@ -168,11 +172,15 @@ class AsyncClientTests(unittest.IsolatedAsyncioTestCase):
             "session.bootstrap",
             "artifacts.wait",
             "projects.sources.planAdd",
+            "modes.set",
+            "modes.get",
             "reports.redact",
             "commands",
             "describe",
             "help",
         ])
+        self.assertEqual(backend.requests[4][1], {"model": "Pro"})
+        self.assertEqual(backend.requests[5][1], {})
 
     async def test_legacy_async_runner_fallback_still_runs(self) -> None:
         transport = FakeLegacyAsyncTransport()

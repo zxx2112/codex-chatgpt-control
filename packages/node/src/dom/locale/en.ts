@@ -44,6 +44,12 @@ export const en = {
   /** Extra openers that surface the mode menu but are not selectable modes themselves. */
   modeOpenerExtra: ["Configure"],
 
+  // --- Thread/action menu rejection (wrong-menu veto for mode selection) ---
+  /** Exact thread/conversation action menu items; a menu containing these is not the mode menu. */
+  threadActionMenuItems: ["Archive", "Copy link", "Delete", "Move to project", "Rename", "Share"],
+  /** Action verbs that prefix a thread title in sidebar menus, e.g. "Pin <thread title>". */
+  threadActionPrefixes: ["Pin", "Unpin"],
+
   // --- Tool menu items, keyed by logical tool id ---
   tools: {
     web_search: ["Web search"],

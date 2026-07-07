@@ -225,6 +225,8 @@ const nonToolKeys = [
   "imageContainerHint",
   "modeLabels",
   "modeOpenerExtra",
+  "threadActionMenuItems",
+  "threadActionPrefixes",
   "signedInMarkers",
   "transientAssistant",
   "stopControl",
@@ -271,6 +273,8 @@ export const localeLabels: {
   modeLabels: string[];
   modeOptions: Record<ModeOptionId, string[]>;
   modeOpenerExtra: string[];
+  threadActionMenuItems: string[];
+  threadActionPrefixes: string[];
   tools: Record<string, string[]>;
   signedInMarkers: string[];
   transientAssistant: string[];

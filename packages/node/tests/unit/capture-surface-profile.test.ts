@@ -19,7 +19,7 @@ describe("surface profile capture drafts", () => {
       supportState: "unverified",
       ifMissing: "block"
     });
-    expect(options.out).toContain("outputs/surface-profiles/");
+    expect(options.out.replaceAll("\\", "/")).toContain("outputs/surface-profiles/");
   });
 
   it("rejects account and rollout metadata that is not a normalized slug", () => {

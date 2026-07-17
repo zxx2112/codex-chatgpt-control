@@ -217,7 +217,12 @@ function fakeChatGPTPage({ assistantText }: { assistantText: string }): PageLike
         globalThis.document = previousDocument;
       }
     },
-    locator: () => emptyLocator,
+    locator: selector => {
+      if (selector.includes("prompt-textarea")) return textbox;
+      if (selector.includes("send-button")) return sendButton;
+      if (selector.includes("create-new-chat-button")) return newChatButton;
+      return emptyLocator;
+    },
     getByRole: (role, options = {}) => {
       const name = options.name;
       if (role === "textbox" && roleNameMatches(name, "Chat with ChatGPT")) return textbox;

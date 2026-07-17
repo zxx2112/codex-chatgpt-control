@@ -1191,7 +1191,7 @@ var lt = {
 
 // src/dom/locale/zh-Hans.ts
 var zhHans = {
-  composerTextbox: ["\u6709\u95EE\u9898\uFF0C\u5C3D\u7BA1\u95EE"],
+  composerTextbox: ["\u4E0E ChatGPT \u804A\u5929", "\u95EE\u95EE ChatGPT", "\u6709\u95EE\u9898\uFF0C\u5C3D\u7BA1\u95EE"],
   sendButton: ["\u53D1\u9001\u63D0\u793A"],
   searchChatsButton: ["\u641C\u7D22\u804A\u5929"],
   searchChatsPlaceholder: ["\u641C\u7D22\u804A\u5929\u2026"],
@@ -1214,7 +1214,16 @@ var zhHans = {
     deep_research: ["\u6DF1\u5EA6\u7814\u7A76"],
     create_image: ["\u521B\u5EFA\u56FE\u7247"]
   },
-  signedInMarkers: ["\u65B0\u804A\u5929", "\u641C\u7D22\u804A\u5929", "\u6700\u8FD1", "\u5386\u53F2\u804A\u5929\u8BB0\u5F55", "\u9879\u76EE", "\u6709\u95EE\u9898\uFF0C\u5C3D\u7BA1\u95EE"],
+  signedInMarkers: [
+    "\u65B0\u804A\u5929",
+    "\u641C\u7D22\u804A\u5929",
+    "\u6700\u8FD1",
+    "\u5386\u53F2\u804A\u5929\u8BB0\u5F55",
+    "\u9879\u76EE",
+    "\u4E0E ChatGPT \u804A\u5929",
+    "\u95EE\u95EE ChatGPT",
+    "\u6709\u95EE\u9898\uFF0C\u5C3D\u7BA1\u95EE"
+  ],
   responseActions: ["\u590D\u5236\u56DE\u590D"],
   stopControl: ["\u505C\u6B62\u56DE\u7B54"]
 };
@@ -2542,8 +2551,16 @@ var cssSelectors = {
   generatedArtifactDownloadControls: generatedArtifactDownloadClauses.join(", ")
 };
 function composerTextbox(page) {
+  if (typeof page.locator === "function") {
+    return page.locator([
+      "main textarea[name='prompt-textarea']:visible",
+      "main textarea#prompt-textarea:visible",
+      "main [contenteditable='true'][id='prompt-textarea']:visible",
+      "main [contenteditable='true'][data-testid='prompt-textarea']:visible"
+    ].join(", "));
+  }
   if (typeof page.getByRole !== "function") {
-    return requiredLocator(page, "[contenteditable='true'], textarea");
+    return requiredLocator(page, "main [contenteditable='true'], main textarea");
   }
   return page.getByRole("textbox", {
     name: anyLabelPattern([
@@ -2553,6 +2570,9 @@ function composerTextbox(page) {
   });
 }
 function sendButton(page) {
+  if (typeof page.locator === "function") {
+    return page.locator("main [data-testid='send-button']:visible");
+  }
   if (typeof page.getByRole !== "function") {
     return requiredLocator(page, "button[aria-label*='Send']");
   }
@@ -2571,10 +2591,13 @@ function searchChatsInput(page) {
   return requiredLocator(page, "input[placeholder*='Search chats']");
 }
 function newChatButton(page) {
+  if (typeof page.locator === "function") {
+    return page.locator("[data-testid='create-new-chat-button']:visible");
+  }
   if (typeof page.getByRole !== "function") {
     return requiredLocator(page, "a[href='/'], button");
   }
-  return page.getByRole("button", { name: anyLabelPattern(localeLabels.newChat) });
+  return page.getByRole("link", { name: anyLabelPattern(localeLabels.newChat) });
 }
 function addFilesButton(page) {
   if (typeof page.getByRole !== "function") {

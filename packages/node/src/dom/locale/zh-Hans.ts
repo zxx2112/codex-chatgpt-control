@@ -7,9 +7,10 @@ import type { LocaleContribution } from "./types.js";
  * Some non-Intelligence surfaces may still fall back to English + `selector_drift`.
  *
  * Intelligence picker labels updated 2026-06-10 and stop-control labels updated 2026-06-15 from visible ChatGPT Pro sessions.
+ * Composer labels updated 2026-07-17 from a visible signed-in ChatGPT session.
  */
 export const zhHans = {
-  composerTextbox: ["有问题，尽管问"],
+  composerTextbox: ["与 ChatGPT 聊天", "问问 ChatGPT", "有问题，尽管问"],
   sendButton: ["发送提示"],
   searchChatsButton: ["搜索聊天"],
   searchChatsPlaceholder: ["搜索聊天…"],
@@ -32,7 +33,16 @@ export const zhHans = {
     deep_research: ["深度研究"],
     create_image: ["创建图片"],
   },
-  signedInMarkers: ["新聊天", "搜索聊天", "最近", "历史聊天记录", "项目", "有问题，尽管问"],
+  signedInMarkers: [
+    "新聊天",
+    "搜索聊天",
+    "最近",
+    "历史聊天记录",
+    "项目",
+    "与 ChatGPT 聊天",
+    "问问 ChatGPT",
+    "有问题，尽管问",
+  ],
   responseActions: ["复制回复"],
   stopControl: ["停止回答"],
 } satisfies LocaleContribution;

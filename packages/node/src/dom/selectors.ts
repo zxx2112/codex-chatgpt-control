@@ -48,8 +48,16 @@ export const cssSelectors = {
 } as const;
 
 export function composerTextbox(page: PageLike): LocatorLike {
+  if (typeof page.locator === "function") {
+    return page.locator([
+      "main textarea[name='prompt-textarea']:visible",
+      "main textarea#prompt-textarea:visible",
+      "main [contenteditable='true'][id='prompt-textarea']:visible",
+      "main [contenteditable='true'][data-testid='prompt-textarea']:visible"
+    ].join(", "));
+  }
   if (typeof page.getByRole !== "function") {
-    return requiredLocator(page, "[contenteditable='true'], textarea");
+    return requiredLocator(page, "main [contenteditable='true'], main textarea");
   }
   return page.getByRole("textbox", {
     name: anyLabelPattern([
@@ -60,6 +68,9 @@ export function composerTextbox(page: PageLike): LocatorLike {
 }
 
 export function sendButton(page: PageLike): LocatorLike {
+  if (typeof page.locator === "function") {
+    return page.locator("main [data-testid='send-button']:visible");
+  }
   if (typeof page.getByRole !== "function") {
     return requiredLocator(page, "button[aria-label*='Send']");
   }
@@ -81,10 +92,13 @@ export function searchChatsInput(page: PageLike): LocatorLike {
 }
 
 export function newChatButton(page: PageLike): LocatorLike {
+  if (typeof page.locator === "function") {
+    return page.locator("[data-testid='create-new-chat-button']:visible");
+  }
   if (typeof page.getByRole !== "function") {
     return requiredLocator(page, "a[href='/'], button");
   }
-  return page.getByRole("button", { name: anyLabelPattern(localeLabels.newChat) });
+  return page.getByRole("link", { name: anyLabelPattern(localeLabels.newChat) });
 }
 
 export function addFilesButton(page: PageLike): LocatorLike {

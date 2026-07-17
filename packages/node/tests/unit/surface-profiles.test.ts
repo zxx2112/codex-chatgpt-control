@@ -73,6 +73,25 @@ describe("sanitized Chat and Work surface profiles", () => {
     expect(inspection.availableAxes).toEqual([]);
   });
 
+  it("detects the current Simplified Chinese Chat composer", () => {
+    const detected = detectExperienceFromSnapshot({
+      url: "https://chatgpt.com/",
+      composerLabels: ["与 ChatGPT 聊天"],
+      mainControls: ["Chat", "Work", "发送提示"],
+      mainText: "今天有什么计划？"
+    });
+
+    expect(detected).toMatchObject({
+      experience: "chat",
+      confidence: "high",
+      selectorProfile: "chat_simplified_v1"
+    });
+    expect(detected.evidence).toContainEqual({
+      source: "composer",
+      label: "与 chatgpt 聊天"
+    });
+  });
+
   it("verifies legacy Chat aliases without changing the inspection wire shape", async () => {
     const legacy = await readSurfaceFixture("surface-chat-legacy.json");
     const legacyDetected = detectExperienceFromSnapshot(legacy.snapshot);
